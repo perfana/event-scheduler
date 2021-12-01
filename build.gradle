@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     compile 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    compileOnly 'org.projectlombok:lombok:1.18.20'
+    compileOnly 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
     testImplementation 'junit:junit:4.13.2'
