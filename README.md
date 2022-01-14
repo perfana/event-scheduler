@@ -32,7 +32,7 @@ TestConfig testConfig = TestConfig.builder()
     .build();
 
 // this class really needs to be on the classpath, otherwise: runtime exception, not found on classpath
-String factoryClassName = "nl.stokpop.eventscheduler.event.EventFactoryDefault";
+String factoryClassName = "io.perfana.eventscheduler.event.EventFactoryDefault";
 
 List<EventConfig> eventConfigs = new ArrayList<>();
 eventConfigs.add(EventConfig.builder().name("myEvent1").eventFactory(factoryClassName).scheduleScript(scheduleScript2).build());
@@ -162,7 +162,7 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
 
 ```xml 
 <plugin>
-    <groupId>nl.stokpop</groupId>
+    <groupId>io.perfana</groupId>
     <artifactId>event-scheduler-maven-plugin</artifactId>
     <version>1.1.0</version>
     <configuration>
@@ -172,8 +172,8 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
             <failOnError>true</failOnError>
             <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
             <eventConfigs>
-                <eventConfig implementation="nl.stokpop.helloworld.event.StokpopEventConfig">
-                    <name>StokpopHelloEvent1</name>
+                <eventConfig implementation="io.perfana.helloworld.event.HelloWorldEventConfig">
+                    <name>HelloEvent1</name>
                     <testConfig>
                         <systemUnderTest>my-application</systemUnderTest>
                         <version>1.2.3</version>
@@ -202,7 +202,7 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
     </configuration>
     <dependencies>
         <dependency>
-            <groupId>nl.stokpop</groupId>
+            <groupId>io.perfana</groupId>
             <artifactId>test-events-hello-world</artifactId>
             <version>1.1.0</version>
         </dependency>
@@ -211,20 +211,20 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
 ```
 
 Note that the `<eventConfig implementation="...">` implementation field is mandatory, it defines the `EventConfig` subtype to use.
-The name of an event, here `StokpopHelloEvent1`, should a unique event name. The event name is used in the logging. 
+The name of an event, here `HelloEvent1`, should a unique event name. The event name is used in the logging. 
 
 # custom events generator
 
-Create your own event by implementing the `nl.stokpop.eventscheduler.api.EventFactory` interface.
+Create your own event by implementing the `io.perfana.eventscheduler.api.EventFactory` interface.
 
-Create your own event generator by implementing the `nl.stokpop.eventscheduler.api.EventGeneratorFactory` interface.
+Create your own event generator by implementing the `io.perfana.eventscheduler.api.EventGeneratorFactory` interface.
 
 Add the `@generatorFactoryClass` and settings to the `customEvents` tag to have
 an eventSchedule generated instead of an explicit list of timestamps and events.
 
 ```xml
 <customEvents>
-    @generatorFactoryClass=com.stokpop.event.StokpopEventGeneratorFactory
+    @generatorFactoryClass=io.perfana.event.PerfanaEventGeneratorFactory
     events-file=${project.basedir}/src/test/resources/events.json
     foo=bar
 </customEvents>
@@ -240,11 +240,11 @@ inside the implementation class.
 
 ## class loaders
 If classes are not available on the default classpath of the Thread, you can provide your
-own ClassLoader via `nl.stokpop.eventscheduler.api.EventSchedulerBuilder.of(EventSchedulerConfig, ClassLoader)`.
+own ClassLoader via `io.perfana.eventscheduler.api.EventSchedulerBuilder.of(EventSchedulerConfig, ClassLoader)`.
 Useful when running with Gradle instead of Maven.
 
 ## event logging
-Two convenience logger implementations are provided for the `nl.stokpop.eventscheduler.api.EventLogger` interface.
+Two convenience logger implementations are provided for the `io.perfana.eventscheduler.api.EventLogger` interface.
 
 * `...log.EventLoggerStdOut.INSTANCE` logs to standard out (debug disabled)
 * `...log.EventLoggerStdOut.INSTANCE_DEBUG` logs to standard out (debug enabled)
