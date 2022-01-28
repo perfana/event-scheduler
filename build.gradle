@@ -6,7 +6,7 @@ plugins {
     id "java"
     id "signing"
     id "maven-publish"
-    id "io.github.gradle-nexus.publish-plugin" version "1.0.0"
+    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
     // check dependency updates: ./gradlew dependencyUpdates -Drevision=release
     id 'com.github.ben-manes.versions' version '0.41.0'
     id 'com.github.hierynomus.license' version '0.16.1'
@@ -54,7 +54,7 @@ license {
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     ext.name = 'Peter Paul Bakker, Perfana'
 
-    header file("src/main/resources/META-INF/LICENSE.txt")
+    header = file("src/main/resources/META-INF/LICENSE.txt")
 
     excludes(["**/*.txt", "src/main/resources/META-INF/services/**"])
 
@@ -62,9 +62,8 @@ license {
         // the standard java style makes intellij complain about dangling javadoc
         java = "SLASHSTAR_STYLE"
     }
-
-    ignoreFailures false
-    strictCheck true
+    ignoreFailures = false
+    strictCheck = true
 }
 
 // https://docs.gradle.org/current/userguide/signing_plugin.html
