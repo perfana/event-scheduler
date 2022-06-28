@@ -13,7 +13,79 @@ To be used in combination with plugins:
 * [test-events-wiremock](https://github.com/perfana/test-events-wiremock) - dynamically change wiremock delays at specified times 
 * [test-events-springboot](https://github.com/perfana/test-events-springboot) - connect to spring boot app, e.g. fetch values of settings via actuator
 
-## usage
+Custom plugins can be build as described below. Tip: base a new plugin on the test-events-hello-world example.
+
+## usage via Maven
+
+The following event-scheduler Maven plugins can be used, these are ready-to-go:
+
+* [event-scheduler-maven-plugin](https://github.com/perfana/event-scheduler-maven-plugin) runs plain event-scheduler via Maven
+* [event-gatling-maven-plugin](https://github.com/perfana/events-gatling-maven-plugin) runs Gatling load test via Maven with event-scheduler build-in
+* [event-jmeter-maven-plugin](https://github.com/perfana/events-jmeter-maven-plugin)  runs jMeter load test via Maven with event-scheduler build-in
+
+## event-scheduler Maven plugin example
+
+To use the events via the `event-scheduler-maven-plugin`, the jar with the
+implementation details must be on the classpath of the plugin.
+
+You can use the `dependencies` element inside the `plugin` element.
+
+For example, using the `test-events-hello-world` event-scheduler plugin (yes, a plugin of a plugin):
+
+```xml 
+<plugin>
+    <groupId>io.perfana</groupId>
+    <artifactId>event-scheduler-maven-plugin</artifactId>
+    <version>1.1.0</version>
+    <configuration>
+        <eventSchedulerConfig>
+            <debugEnabled>false</debugEnabled>
+            <schedulerEnabled>true</schedulerEnabled>
+            <failOnError>true</failOnError>
+            <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
+            <eventConfigs>
+                <eventConfig implementation="io.perfana.helloworld.event.HelloWorldEventConfig">
+                    <name>HelloEvent1</name>
+                    <testConfig>
+                        <systemUnderTest>my-application</systemUnderTest>
+                        <version>1.2.3</version>
+                        <workload>stress-test</workload>
+                        <testEnvironment>loadtest</testEnvironment>
+                        <testRunId>my-test-123</testRunId>
+                        <buildResultsUrl>http://localhost:4000/my-test-123</buildResultsUrl>
+                        <rampupTimeInSeconds>1</rampupTimeInSeconds>
+                        <constantLoadTimeInSeconds>4</constantLoadTimeInSeconds>
+                        <annotations>${annotation}</annotations>
+                        <tags>
+                            <tag>tag1-value</tag>
+                            <tag>tag2-value</tag>
+                        </tags>
+                    </testConfig>
+                    <scheduleScript>
+                        PT1S|restart(restart with 2 replicas)|{ server:'myserver' replicas:2 tags: [ 'first', 'second' ] }
+                    </scheduleScript>
+                    <myRestService>https://my-rest-api</myRestService>
+                    <myCredentials>${env.SECRET}</myCredentials>
+                    <helloMessage>Hello, Hello World!</helloMessage>
+                    <helloInitialSleepSeconds>1</helloInitialSleepSeconds>
+                </eventConfig>
+            </eventConfigs>
+        </eventSchedulerConfig>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.perfana</groupId>
+            <artifactId>test-events-hello-world</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+    </dependencies>
+</plugin>
+```
+
+Note that the `<eventConfig implementation="...">` implementation field is mandatory, it defines the `EventConfig` subtype to use.
+The name of an event, here `HelloEvent1`, should a unique event name. The event name is used in the logging.
+
+## usage via code
 
 Create an `EventScheduler` using the builder with an `EventSchedulerConfig`:
 
@@ -161,71 +233,6 @@ The settings will be sent along with the event as well, for your own code to int
 
 When no settings are present, like with de scale-down event in this example, the settings
 event will receive null for settings.
-
-## event-scheduler maven plugins
-
-To use the events via the `event-scheduler-maven-plugin`, the jar with the
-implementation details must be on the classpath of the plugin.
-
-You can use the `dependencies` element inside the `plugin` element.
-
-Plugins you can use:
-* 
-
-For example, using the `test-events-hello-world` event-scheduler plugin (yes, a plugin of a plugin):
-
-```xml 
-<plugin>
-    <groupId>io.perfana</groupId>
-    <artifactId>event-scheduler-maven-plugin</artifactId>
-    <version>1.1.0</version>
-    <configuration>
-        <eventSchedulerConfig>
-            <debugEnabled>false</debugEnabled>
-            <schedulerEnabled>true</schedulerEnabled>
-            <failOnError>true</failOnError>
-            <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
-            <eventConfigs>
-                <eventConfig implementation="io.perfana.helloworld.event.HelloWorldEventConfig">
-                    <name>HelloEvent1</name>
-                    <testConfig>
-                        <systemUnderTest>my-application</systemUnderTest>
-                        <version>1.2.3</version>
-                        <workload>stress-test</workload>
-                        <testEnvironment>loadtest</testEnvironment>
-                        <testRunId>my-test-123</testRunId>
-                        <buildResultsUrl>http://localhost:4000/my-test-123</buildResultsUrl>
-                        <rampupTimeInSeconds>1</rampupTimeInSeconds>
-                        <constantLoadTimeInSeconds>4</constantLoadTimeInSeconds>
-                        <annotations>${annotation}</annotations>
-                        <tags>
-                            <tag>tag1-value</tag>
-                            <tag>tag2-value</tag>
-                        </tags>
-                    </testConfig>
-                    <scheduleScript>
-                        PT1S|restart(restart with 2 replicas)|{ server:'myserver' replicas:2 tags: [ 'first', 'second' ] }
-                    </scheduleScript>
-                    <myRestService>https://my-rest-api</myRestService>
-                    <myCredentials>${env.SECRET}</myCredentials>
-                    <helloMessage>Hello, Hello World!</helloMessage>
-                    <helloInitialSleepSeconds>1</helloInitialSleepSeconds>
-                </eventConfig>
-            </eventConfigs>
-        </eventSchedulerConfig>
-    </configuration>
-    <dependencies>
-        <dependency>
-            <groupId>io.perfana</groupId>
-            <artifactId>test-events-hello-world</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-    </dependencies>
-</plugin>
-```
-
-Note that the `<eventConfig implementation="...">` implementation field is mandatory, it defines the `EventConfig` subtype to use.
-The name of an event, here `HelloEvent1`, should a unique event name. The event name is used in the logging. 
 
 # custom events generator
 
