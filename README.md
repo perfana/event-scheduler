@@ -2,9 +2,18 @@
 
 Add this java library to your project to generate timed events.
 
-For instance during a performance test to dynamically increase response times over time.
+For instance during a Perfana performance test to dynamically increase response times over time.
 
-# usage
+To be used in combination with plugins:
+
+* [perfana-java-client](https://github.com/perfana/perfana-java-client) - connect with Perfana
+* [test-events-hello-world](https://github.com/perfana/test-events-hello-world) - test and example plugin 
+* [test-events-command-runner](https://github.com/perfana/test-events-command-runner) - run a command at certain events 
+* [test-events-loadrunner-cloud](https://github.com/perfana/test-events-loadrunner-cloud) - connect with LoadRunner Cloud, start/stop tests 
+* [test-events-wiremock](https://github.com/perfana/test-events-wiremock) - dynamically change wiremock delays at specified times 
+* [test-events-springboot](https://github.com/perfana/test-events-springboot) - connect to spring boot app, e.g. fetch values of settings via actuator
+
+## usage
 
 Create an `EventScheduler` using the builder with an `EventSchedulerConfig`:
 
@@ -68,11 +77,13 @@ to configure multiple Wiremock event that use different Wiremock urls for instan
  
 Then call these methods at the appropriate time:
 
-### scheduler.beforeTest()
-Call when the load test starts. 
+* `scheduler.startSession()` - at start of the load test
+* `scheduler.stopSession()` - at end of the load test
+* `scheduler.checkResults()` - call to see if all checks of the test run are ok
+* `scheduler.abortSession()` - call when the load test was aborted abnormally
 
-### scheduler.afterTest()
-Call when the load test stops. 
+The `checkResults()` throws `EventCheckFailureException` in case there are
+events that report a failure.
 
 ## test events
 
@@ -146,7 +157,7 @@ Above can be read as:
 * send heapdump event 10 minutes and 45 seconds after start of test run.
 * send scale-up event 15 minutes after start of test run.
 
-The setting will be send along with the event as well, for your own code to interpret.
+The settings will be sent along with the event as well, for your own code to interpret.
 
 When no settings are present, like with de scale-down event in this example, the settings
 event will receive null for settings.
@@ -157,6 +168,9 @@ To use the events via the `event-scheduler-maven-plugin`, the jar with the
 implementation details must be on the classpath of the plugin.
 
 You can use the `dependencies` element inside the `plugin` element.
+
+Plugins you can use:
+* 
 
 For example, using the `test-events-hello-world` event-scheduler plugin (yes, a plugin of a plugin):
 
@@ -260,3 +274,4 @@ method that you can implement to handle these exceptions.
 
 An example is that the analysis tool in use discovers too high response times and decides to kill the
 running test.
+
