@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public final class EventScheduler {
@@ -38,11 +39,13 @@ public final class EventScheduler {
 
     private final EventBroadcaster broadcaster;
 
+    private final EventMessageBus messageBus;
+
     private final Collection<CustomEvent> scheduleEvents;
 
     private final EventSchedulerContext eventSchedulerContext;
 
-    private volatile SchedulerExceptionHandler schedulerExceptionHandler;
+    private final AtomicReference<SchedulerExceptionHandler> schedulerExceptionHandler = new AtomicReference<>();
 
     private final EventSchedulerEngine eventSchedulerEngine;
 
@@ -68,7 +71,8 @@ public final class EventScheduler {
         this.eventSchedulerContext = eventSchedulerContext;
         this.logger = logger;
         this.eventSchedulerEngine = eventSchedulerEngine;
-        this.schedulerExceptionHandler = schedulerExceptionHandler;
+        this.schedulerExceptionHandler.set(schedulerExceptionHandler);
+        this.messageBus = messageBus;
 
         this.waitForGoMessagesCount = (int) eventSchedulerContext.getEventContexts().stream()
             .filter(EventContext::isReadyForStartParticipant)
@@ -80,7 +84,7 @@ public final class EventScheduler {
         // add startTest to this receiver... if needed...
         if (waitForGoMessagesCount != 0) {
             logger.info("Wait for Go! messages is active, need " + waitForGoMessagesCount + " Go! messages to start!");
-            messageBus.addReceiver(m -> checkMessageForGo(m, startTest, waitForGoMessagesCount));
+            this.messageBus.addReceiver(m -> checkMessageForGo(m, startTest, waitForGoMessagesCount));
         }
     }
 
@@ -90,7 +94,7 @@ public final class EventScheduler {
             // Note that schedulerExceptionHandler field can be set later, so it's value can change over time!
             // The schedulerExceptionHandler can be null in constructor.
             // Can result in: "SchedulerHandlerException KILL was thrown, but no SchedulerExceptionHandler is present."
-            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.getKeepAliveInterval(), broadcaster, schedulerExceptionHandler);
+            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.getKeepAliveInterval(), broadcaster, schedulerExceptionHandler.get());
             eventSchedulerEngine.startCustomEventScheduler(scheduleEvents, broadcaster);
         };
     }
@@ -107,7 +111,7 @@ public final class EventScheduler {
     }
 
     public void addKillSwitch(SchedulerExceptionHandler schedulerExceptionHandler) {
-        this.schedulerExceptionHandler = schedulerExceptionHandler;
+        this.schedulerExceptionHandler.set(schedulerExceptionHandler);
     }
 
     /**
@@ -122,6 +126,8 @@ public final class EventScheduler {
             logger.info("start test session");
 
             broadcaster.broadcastBeforeTest();
+
+            sendTestConfig();
 
             if (waitForGoMessagesCount == 0) {
                 startTest.start();
@@ -215,7 +221,30 @@ public final class EventScheduler {
         return eventSchedulerContext;
     }
 
+    public void sendMessage(EventMessage message) {
+        messageBus.send(message);
+    }
+
     private interface StartTest {
         void start();
+    }
+
+    private void sendTestConfig() {
+        String events = getEventSchedulerContext().getEventContexts().stream()
+                .map(EventContext::getName)
+                .collect(Collectors.joining(","));
+
+        sendMessage(createTestConfigMessage("testEvents", events));
+    }
+
+    private EventMessage createTestConfigMessage(String key, String value) {
+        return EventMessage.builder()
+                .pluginName("event-scheduler")
+                .variable("message-type", "test-run-config")
+                .variable("output", "key")
+                .variable("key", key)
+                .variable("tags", "event-scheduler")
+                .message(value)
+                .build();
     }
 }

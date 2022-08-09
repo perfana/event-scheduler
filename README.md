@@ -153,6 +153,7 @@ Then call these methods at the appropriate time:
 * `scheduler.stopSession()` - at end of the load test
 * `scheduler.checkResults()` - call to see if all checks of the test run are ok
 * `scheduler.abortSession()` - call when the load test was aborted abnormally
+* `scheduler.sendMessage(message)` - put a message on the event message bus
 
 The `checkResults()` throws `EventCheckFailureException` in case there are
 events that report a failure.
@@ -282,3 +283,12 @@ method that you can implement to handle these exceptions.
 An example is that the analysis tool in use discovers too high response times and decides to kill the
 running test.
 
+## fat jar
+
+If you create a fat jar that contains both the `event-scheduler` and one or more `test-event` plugins, such
+as the `perfana-java-client`, you probably run into an issue that not all interface implementation defined in 
+META-INF/services are registered correctly. This results in class loading issues, like the following:
+" io.perfana.event.PerfanaEventFactory not registered via META-INF/services".
+
+If you use the `maven-shade-plugin` you can solve this by adding the `org.apache.maven.plugins.shade.resource.ServicesResourceTransformer`
+to the transformers section of the configuration.

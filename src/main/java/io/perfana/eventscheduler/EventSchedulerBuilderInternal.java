@@ -104,7 +104,7 @@ class EventSchedulerBuilderInternal {
             throw new EventSchedulerRuntimeException("eventSchedulerContext must be set, it is null.");
         }
 
-        EventMessageBus eventMessageBus = (this.eventMessageBus == null)
+        EventMessageBus messageBus = (this.eventMessageBus == null)
             ? new EventMessageBusSimple()
             : this.eventMessageBus;
 
@@ -123,7 +123,7 @@ class EventSchedulerBuilderInternal {
 
         List<Event> events = eventContexts.values().stream()
                 .filter(EventContext::isEnabled)
-                .map(context -> createEvent(provider, context, eventMessageBus))
+                .map(context -> createEvent(provider, context, messageBus))
                 .collect(Collectors.toList());
 
         EventBroadcasterFactory broadcasterFactory = (eventBroadcasterFactory == null)
@@ -140,7 +140,7 @@ class EventSchedulerBuilderInternal {
             broadcaster,
             customEvents,
             eventSchedulerContext,
-            eventMessageBus,
+            messageBus,
             logger,
             eventSchedulerEngine,
             schedulerExceptionHandler);
@@ -154,7 +154,7 @@ class EventSchedulerBuilderInternal {
 
         // create has raw type usage, so we have @SuppressWarnings("unchecked")
         return provider.factoryByClassName(factoryClassName)
-                .orElseThrow(() -> new RuntimeException(factoryClassName + " not found on classpath"))
+                .orElseThrow(() -> new RuntimeException(factoryClassName + " not registered via META-INF/services"))
                 .create(context, messageBus, eventLogger);
     }
 

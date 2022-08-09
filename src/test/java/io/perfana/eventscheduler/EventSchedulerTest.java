@@ -19,6 +19,7 @@ import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.api.config.*;
 import io.perfana.eventscheduler.api.message.EventMessage;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
+import io.perfana.eventscheduler.api.message.EventMessageReceiver;
 import io.perfana.eventscheduler.event.EventFactoryProvider;
 import io.perfana.eventscheduler.exception.EventCheckFailureException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
@@ -28,6 +29,7 @@ import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -426,7 +428,7 @@ public class EventSchedulerTest
 
         final CheckCallbacks checkCallbacks = new CheckCallbacks();
 
-        SchedulerExceptionHandler schedulerExceptionHandler = new SchedulerExceptionHandler() {
+        SchedulerExceptionHandler handler = new SchedulerExceptionHandler() {
             @Override
             public void kill(String message) {
                 checkCallbacks.killCalled = true;
@@ -450,7 +452,7 @@ public class EventSchedulerTest
             .setEventFactoryProvider(provider)
             .build();
 
-        scheduler.addKillSwitch(schedulerExceptionHandler);
+        scheduler.addKillSwitch(handler);
 
         scheduler.startSession();
 
@@ -459,6 +461,34 @@ public class EventSchedulerTest
 
         assertFalse(checkCallbacks.abortCalled);
         assertTrue(checkCallbacks.killCalled);
+
+    }
+
+    @Test
+    public void sendMessage() {
+
+        EventSchedulerConfig config = EventSchedulerConfig.builder()
+                .testConfig(TestConfig.builder().build())
+                .build();
+
+        AtomicBoolean receivedMessage = new AtomicBoolean(false);
+
+        EventMessageReceiver receiver = message -> {
+            receivedMessage.set(true);
+            assertEquals("Hello world!", message.getMessage());
+        };
+
+        EventMessageBusSimple bus = new EventMessageBusSimple();
+        bus.addReceiver(receiver);
+
+        EventScheduler scheduler = new EventSchedulerBuilderInternal()
+                .setEventSchedulerContext(config.toContext(EventLoggerStdOut.INSTANCE))
+                .setEventMessageBus(bus)
+                .build();
+
+        scheduler.sendMessage(EventMessage.builder().message("Hello world!").build());
+
+        assertTrue(receivedMessage.get());
 
     }
 }
