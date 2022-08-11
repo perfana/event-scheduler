@@ -18,12 +18,12 @@ package io.perfana.eventscheduler;
 import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.api.config.EventContext;
 import io.perfana.eventscheduler.api.config.EventSchedulerContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessage;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 import io.perfana.eventscheduler.exception.EventCheckFailureException;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -230,11 +230,33 @@ public final class EventScheduler {
     }
 
     private void sendTestConfig() {
+        Map<String, String> testConfigLines = createTestConfigLines(getEventSchedulerContext().getTestContext());
+
+        testConfigLines.forEach((key, value) -> sendMessage(createTestConfigMessage(key, value)));
+
         String events = getEventSchedulerContext().getEventContexts().stream()
                 .map(EventContext::getName)
                 .collect(Collectors.joining(","));
 
         sendMessage(createTestConfigMessage("testEvents", events));
+        sendMessage(createTestConfigMessage("scheduleScript", getEventSchedulerContext().getScheduleScript()));
+    }
+
+    private Map<String, String> createTestConfigLines(TestContext testContext) {
+        Map<String, String> lines = new HashMap<>();
+        String prefix = "testContext.";
+        lines.put(prefix + "testRunId", testContext.getTestRunId());
+        lines.put(prefix + "testEnvironment", testContext.getTestEnvironment());
+        lines.put(prefix + "annotations", testContext.getAnnotations());
+        lines.put(prefix + "rampupTime", String.valueOf(testContext.getRampupTime()));
+        lines.put(prefix + "constantLoadTime", String.valueOf(testContext.getConstantLoadTime()));
+        lines.put(prefix + "workload", testContext.getWorkload());
+        lines.put(prefix + "productName", testContext.getProductName());
+        lines.put(prefix + "version", testContext.getVersion());
+        lines.put(prefix + "dashboardName", testContext.getDashboardName());
+        lines.put(prefix + "buildResultsUrl", testContext.getBuildResultsUrl());
+        lines.put(prefix + "tags", String.join(",", testContext.getTags()));
+        return lines;
     }
 
     private EventMessage createTestConfigMessage(String key, String value) {
