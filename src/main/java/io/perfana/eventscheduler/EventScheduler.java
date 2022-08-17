@@ -234,9 +234,10 @@ public final class EventScheduler {
 
         testConfigLines.forEach((key, value) -> sendMessage(createTestConfigMessage(key, value)));
 
+        // use space to make sure the info "breaks" on UI display
         String events = getEventSchedulerContext().getEventContexts().stream()
                 .map(EventContext::getName)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(" "));
 
         sendMessage(createTestConfigMessage("testEvents", events));
         sendMessage(createTestConfigMessage("scheduleScript", getEventSchedulerContext().getScheduleScript()));
