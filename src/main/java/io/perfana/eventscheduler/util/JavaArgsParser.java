@@ -14,7 +14,7 @@ public class JavaArgsParser {
 
     private JavaArgsParser() {}
 
-    public static final String JMV_ARG_PREFIX = "jmvArg.";
+    public static final String JMV_ARG_PREFIX = "jvmArg.";
     public static final Pattern CLEAN_OPTION_PATTERN = Pattern.compile("[+-:]");
     private static final List<String> SECRETS_KEY_PARTS = Arrays.asList("password,token,key".split(","));
 
@@ -28,7 +28,7 @@ public class JavaArgsParser {
 
         if (jvmArg.startsWith("-D")) {
             key = jvmArgPart1.substring(1);
-            value = jvmArgPart2;
+            value = jvmArgPart2.length() == 0 ? jvmArgPart1.substring(2) : jvmArgPart2;
         } else if (jvmArg.startsWith("-XX:")) {
             key = CLEAN_OPTION_PATTERN.matcher(jvmArgPart1).replaceAll("");
             value = jvmArgPart2.length() == 0 ? jvmArgPart1.substring(4) : jvmArgPart2;
@@ -97,6 +97,15 @@ public class JavaArgsParser {
     public static boolean isNoSecret(KeyValuePair kvp) {
         String lowerCaseKey = kvp.getKey().toLowerCase();
         return SECRETS_KEY_PARTS.stream().noneMatch(lowerCaseKey::contains);
+    }
+
+    /**
+     * @param jvmArgs a space separated string with jvm args
+     * @return map with key-value pairs for jvm arguments
+     */
+    public static Map<String, String> createJvmArgsTestConfigLines(String jvmArgs) {
+        List<String> listOfArgs = Arrays.asList(jvmArgs.split(" "));
+        return createJvmArgsTestConfigLines(listOfArgs);
     }
 
     public static Map<String, String> createJvmArgsTestConfigLines(List<String> jvmArgs) {
