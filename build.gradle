@@ -26,7 +26,7 @@ targetCompatibility = '1.8'
 
 dependencies {
     implementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    compileOnly 'org.projectlombok:lombok:1.18.22'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     testImplementation 'junit:junit:4.13.2'
