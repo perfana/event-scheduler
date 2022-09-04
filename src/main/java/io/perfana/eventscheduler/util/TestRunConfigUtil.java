@@ -35,7 +35,7 @@ public class TestRunConfigUtil {
                 .variable("tags", tags)
                 .variable("excludes", "")
                 .variable("includes", "")
-                .message(String.join(",", keyValueList)).build();
+                .message(String.join("\u0000", keyValueList)).build();
     }
 
 }
