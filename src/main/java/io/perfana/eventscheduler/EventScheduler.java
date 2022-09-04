@@ -22,6 +22,7 @@ import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessage;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 import io.perfana.eventscheduler.exception.EventCheckFailureException;
+import io.perfana.eventscheduler.util.TestRunConfigUtil;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -240,7 +241,12 @@ public final class EventScheduler {
         testConfigKeyValues.put("testEvents", events);
         testConfigKeyValues.put("scheduleScript", getEventSchedulerContext().getScheduleScript());
 
-        sendMessage(createTestConfigMessage(testConfigKeyValues));
+        EventMessage message = TestRunConfigUtil.createTestRunConfigMessageKeys(
+                "event-scheduler",
+                testConfigKeyValues,
+                "event-scheduler");
+
+        sendMessage(message);
     }
 
     private Map<String, String> createTestConfigKeyValues(TestContext testContext) {
@@ -260,17 +266,4 @@ public final class EventScheduler {
         return lines;
     }
 
-    private EventMessage createTestConfigMessage(Map<String, String> keyValues) {
-
-        List<String> keyValuesList = new ArrayList<>();
-        keyValues.forEach((k,v) -> { keyValuesList.add(k); keyValuesList.add(v);});
-
-        return EventMessage.builder()
-                .pluginName("event-scheduler")
-                .variable("message-type", "test-run-config")
-                .variable("output", "keys")
-                .variable("tags", "event-scheduler")
-                .message(String.join(",", keyValuesList))
-                .build();
-    }
 }
