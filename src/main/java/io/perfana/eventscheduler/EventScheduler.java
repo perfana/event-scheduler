@@ -123,13 +123,12 @@ public final class EventScheduler {
             logger.warn("unexpected call to start session, session was active already, ignore call!");
         }
         else {
-            logger.info("start test session");
+            sendTestConfig();
 
             broadcaster.broadcastBeforeTest();
 
-            sendTestConfig();
-
             if (waitForGoMessagesCount == 0) {
+                logger.info("start test session");
                 startTest.start();
             }
             // otherwise, wait for the Go! messages callbacks
@@ -230,9 +229,7 @@ public final class EventScheduler {
     }
 
     private void sendTestConfig() {
-        Map<String, String> testConfigLines = createTestConfigLines(getEventSchedulerContext().getTestContext());
-
-        testConfigLines.forEach((key, value) -> sendMessage(createTestConfigMessage(key, value)));
+        Map<String, String> testConfigKeyValues = createTestConfigKeyValues(getEventSchedulerContext().getTestContext());
 
         // use newline to make sure the info "breaks" nicely on UI display
         String events = getEventSchedulerContext().getEventContexts().stream()
@@ -240,11 +237,13 @@ public final class EventScheduler {
                 .sorted()
                 .collect(Collectors.joining("\n"));
 
-        sendMessage(createTestConfigMessage("testEvents", events));
-        sendMessage(createTestConfigMessage("scheduleScript", getEventSchedulerContext().getScheduleScript()));
+        testConfigKeyValues.put("testEvents", events);
+        testConfigKeyValues.put("scheduleScript", getEventSchedulerContext().getScheduleScript());
+
+        sendMessage(createTestConfigMessage(testConfigKeyValues));
     }
 
-    private Map<String, String> createTestConfigLines(TestContext testContext) {
+    private Map<String, String> createTestConfigKeyValues(TestContext testContext) {
         Map<String, String> lines = new HashMap<>();
         String prefix = "testContext.";
         lines.put(prefix + "testRunId", testContext.getTestRunId());
@@ -257,18 +256,21 @@ public final class EventScheduler {
         lines.put(prefix + "version", testContext.getVersion());
         lines.put(prefix + "dashboardName", testContext.getDashboardName());
         lines.put(prefix + "buildResultsUrl", testContext.getBuildResultsUrl());
-        lines.put(prefix + "tags", String.join(",", testContext.getTags()));
+        lines.put(prefix + "tags", String.join("\n", testContext.getTags()));
         return lines;
     }
 
-    private EventMessage createTestConfigMessage(String key, String value) {
+    private EventMessage createTestConfigMessage(Map<String, String> keyValues) {
+
+        List<String> keyValuesList = new ArrayList<>();
+        keyValues.forEach((k,v) -> { keyValuesList.add(k); keyValuesList.add(v);});
+
         return EventMessage.builder()
                 .pluginName("event-scheduler")
                 .variable("message-type", "test-run-config")
-                .variable("output", "key")
-                .variable("key", key)
+                .variable("output", "keys")
                 .variable("tags", "event-scheduler")
-                .message(value)
+                .message(String.join(",", keyValuesList))
                 .build();
     }
 }
