@@ -2,6 +2,9 @@ package io.perfana.eventscheduler.util;
 
 import io.perfana.eventscheduler.api.message.EventMessage;
 
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,21 @@ public class TestRunConfigUtil {
                 .variable("excludes", "")
                 .variable("includes", "")
                 .message(String.join(MESSAGE_KEY_VALUE_DELIMITER, keyValueList)).build();
+    }
+
+    public static String hashSecret(String secretToHash) {
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            messageDigest.update(secretToHash.getBytes());
+            return "(hashed-secret)" + toHex(messageDigest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            return "(hashed-secret)" + "(sorry, no algorithm found)";
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        BigInteger bi = new BigInteger(1, bytes);
+        return String.format("%0" + (bytes.length << 1) + "x", bi);
     }
 
 }

@@ -121,7 +121,7 @@ public class JavaArgsParser {
 
     public static boolean isJavaCommandArgsProperty(String name) {
         if (name == null) return false;
-        return name.equals("JAVA_OPTS") || name.equals("JDK_JAVA_OPTIONS") || name.equals("JAVA_TOOL_OPTIONS");
+        return name.contains("JAVA_OPTS") || name.contains("JDK_JAVA_OPTIONS") || name.contains("JAVA_TOOL_OPTIONS");
     }
 
 }
