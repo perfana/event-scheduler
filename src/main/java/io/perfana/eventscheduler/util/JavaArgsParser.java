@@ -116,7 +116,12 @@ public class JavaArgsParser {
                 .collect(Collectors.toMap(
                         JavaArgsParser.KeyValuePair::getKey,
                         JavaArgsParser.KeyValuePair::getValue,
-                        (left, right) -> String.join("\n", left, right)));
+                        (left, right) -> String.join(TestRunConfigUtil.VALUE_LIST_DELIMITER, left, right)));
+    }
+
+    public static boolean isJavaCommandArgsProperty(String name) {
+        if (name == null) return false;
+        return name.equals("JAVA_OPTS") || name.equals("JDK_JAVA_OPTIONS") || name.equals("JAVA_TOOL_OPTIONS");
     }
 
 }

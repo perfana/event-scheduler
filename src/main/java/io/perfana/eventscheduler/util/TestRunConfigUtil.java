@@ -8,6 +8,9 @@ import java.util.Map;
 
 public class TestRunConfigUtil {
 
+    public static final String MESSAGE_KEY_VALUE_DELIMITER = "\u0000";
+    public static final String VALUE_LIST_DELIMITER = "\n";
+
     private TestRunConfigUtil() {}
 
     public static EventMessage createTestRunConfigMessage(String pluginName, String key, String value, String output, String tags, String excludes, String includes) {
@@ -35,7 +38,7 @@ public class TestRunConfigUtil {
                 .variable("tags", tags)
                 .variable("excludes", "")
                 .variable("includes", "")
-                .message(String.join("\u0000", keyValueList)).build();
+                .message(String.join(MESSAGE_KEY_VALUE_DELIMITER, keyValueList)).build();
     }
 
 }
