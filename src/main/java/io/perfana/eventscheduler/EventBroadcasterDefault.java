@@ -15,10 +15,7 @@
  */
 package io.perfana.eventscheduler;
 
-import io.perfana.eventscheduler.api.CustomEvent;
-import io.perfana.eventscheduler.api.Event;
-import io.perfana.eventscheduler.api.EventCheck;
-import io.perfana.eventscheduler.api.EventLogger;
+import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.exception.handler.SchedulerHandlerException;
 import io.perfana.eventscheduler.log.EventLoggerDevNull;
 
@@ -31,14 +28,12 @@ public class EventBroadcasterDefault implements EventBroadcaster {
 
     private final List<Event> events;
     private final EventLogger logger;
+    private final int continueTestRunParticipantsCount;
 
     EventBroadcasterDefault(Collection<Event> events, EventLogger logger) {
         this.events = events == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(events));
+        this.continueTestRunParticipantsCount = (int) this.events.stream().filter(Event::isContinueOnKeepAliveParticipant).count();
         this.logger = logger == null ? EventLoggerDevNull.INSTANCE : logger;
-    }
-
-    public EventBroadcasterDefault(Collection<Event> events) {
-        this(events, null);
     }
 
     @Override
@@ -65,7 +60,7 @@ public class EventBroadcasterDefault implements EventBroadcaster {
         Queue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
         events.forEach(catchExceptionWrapper(Event::keepAlive, exceptions));
         logger.debug("Keep Alive found exceptions: " + exceptions);
-        throwAbortOrKillWitchException(exceptions);
+        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount);
     }
 
     @Override
@@ -77,7 +72,6 @@ public class EventBroadcasterDefault implements EventBroadcaster {
     @Override
     public void broadcastCustomEvent(CustomEvent scheduleEvent) {
         logger.info("broadcast " + scheduleEvent.getName() + " custom event");
-        List<Exception> errors = new ArrayList<>();
         events.forEach(catchExceptionWrapper(event -> event.customEvent(scheduleEvent)));
     }
 

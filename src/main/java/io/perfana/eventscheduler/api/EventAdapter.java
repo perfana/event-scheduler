@@ -25,7 +25,7 @@ import java.util.TreeSet;
 
 /**
  * Adapter class with empty method implementations of the Event interface.
- * Extend this class so you only have to implement the methods that are used.
+ * Extend this class and implement the methods that are actually used.
  *
  * Always provide a proper name for an Event for traceability.
  */
@@ -94,6 +94,15 @@ public abstract class EventAdapter<T extends EventContext> implements Event {
     public static Set<String> setOf(String... items) {
         // TreeSet is ordered
         return Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(items)));
+    }
+
+    @Override
+    public boolean isContinueOnKeepAliveParticipant() {
+        return eventContext.isContinueOnKeepAliveParticipant();
+    }
+    @Override
+    public boolean isReadyForStartParticipant() {
+        return eventContext.isReadyForStartParticipant();
     }
 
 }

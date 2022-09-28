@@ -18,8 +18,10 @@ package io.perfana.eventscheduler;
 import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.api.config.EventConfig;
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import io.perfana.eventscheduler.exception.handler.AbortSchedulerException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
+import io.perfana.eventscheduler.exception.handler.StopTestRunException;
 import io.perfana.eventscheduler.log.CountErrorsEventLogger;
 import io.perfana.eventscheduler.log.EventLoggerStdOut;
 import org.junit.Test;
@@ -207,6 +209,32 @@ public class EventBroadcasterTest {
         broadcaster.shutdownAndWaitAllTasksDone(2);
     }
 
+    @Test(expected = StopTestRunException.class)
+    public void broadcastKeepAliveWithStopTestRunExceptionDefault() {
+        List<Event> events = createTwoStopTestRunEvents();
+
+        CountErrorsEventLogger countErrorsEventLogger = CountErrorsEventLogger.of(EventLoggerStdOut.INSTANCE);
+
+        EventBroadcaster broadcaster = new EventBroadcasterDefault(events, countErrorsEventLogger);
+
+        broadcaster.broadcastKeepAlive();
+
+        broadcaster.shutdownAndWaitAllTasksDone(2);
+    }
+
+    @Test(expected = EventSchedulerRuntimeException.class)
+    public void broadcastKeepAliveWithStopTestRunExceptionWrongNumber() {
+        List<Event> events = createWrongStopTestRunEvents();
+
+        CountErrorsEventLogger countErrorsEventLogger = CountErrorsEventLogger.of(EventLoggerStdOut.INSTANCE);
+
+        EventBroadcaster broadcaster = new EventBroadcasterDefault(events, countErrorsEventLogger);
+
+        broadcaster.broadcastKeepAlive();
+
+        broadcaster.shutdownAndWaitAllTasksDone(2);
+    }
+
     private List<Event> createTestEvents(EventLogger eventLogger) {
         MySleepyEvent sleepyEvent1 = new MySleepyEvent(configWithName("sleepy1"), eventLogger);
         MySleepyEvent sleepyEvent2 = new MySleepyEvent(configWithName("sleepy2"), eventLogger);
@@ -221,8 +249,8 @@ public class EventBroadcasterTest {
         return events;
     }
 
-    private static EventContext configWithName(String sleepy1) {
-        return EventConfig.builder().name(sleepy1).build().toContext();
+    private static EventContext configWithName(String name) {
+        return EventConfig.builder().name(name).build().toContext();
     }
 
     private List<Event> createKillSwitchTestEvents() {
@@ -247,6 +275,31 @@ public class EventBroadcasterTest {
         return events;
     }
 
+    private List<Event> createTwoStopTestRunEvents() {
+        MyStopTestRunEvent stopTestRunEvent1 = new MyStopTestRunEvent(EventConfig.builder().name("stop-one").continueOnKeepAliveParticipant(true).build().toContext());
+        MyStopTestRunEvent stopTestRunEvent2 = new MyStopTestRunEvent(EventConfig.builder().name("stop-two").continueOnKeepAliveParticipant(true).build().toContext());
+        MyStopTestRunEvent nonStopTestRunEvent = new MyStopTestRunEvent(EventConfig.builder().name("non-stop").continueOnKeepAliveParticipant(false).build().toContext());
+
+        List<Event> events = new ArrayList<>();
+        events.add(stopTestRunEvent1);
+        events.add(stopTestRunEvent2);
+        events.add(nonStopTestRunEvent);
+        return events;
+    }
+
+    private List<Event> createWrongStopTestRunEvents() {
+        // two will throw a StopTestRunExceptions, while only two ContinueOnKeepAliveParticipants are registered
+        MyStopTestRunEvent stopTestRunEvent1 = new MyStopTestRunEvent(EventConfig.builder().name("stop-one").continueOnKeepAliveParticipant(true).build().toContext());
+        MyStopTestRunEvent stopTestRunEvent2 = new MyStopTestRunEvent(EventConfig.builder().name("stop-two").continueOnKeepAliveParticipant(false).build().toContext());
+        MyStopTestRunEvent nonStopTestRunEvent = new MyStopTestRunEvent(EventConfig.builder().name("non-stop").continueOnKeepAliveParticipant(false).build().toContext());
+
+        List<Event> events = new ArrayList<>();
+        events.add(stopTestRunEvent1);
+        events.add(stopTestRunEvent2);
+        events.add(nonStopTestRunEvent);
+        return events;
+    }
+
     private static class MySleepyEvent extends EventAdapter<EventContext> {
 
         public MySleepyEvent(EventContext context, EventLogger eventLogger) {
@@ -267,6 +320,7 @@ public class EventBroadcasterTest {
             logger.error(System.currentTimeMillis() + " After sleep in check in thread: " + Thread.currentThread().getName());
              return new EventCheck(eventContext.getName(), getClass().getSimpleName(), EventStatus.SUCCESS, "All ok");
         }
+
     }
 
     private static class MyKillSwitchEvent extends EventAdapter<EventContext> {
@@ -284,6 +338,22 @@ public class EventBroadcasterTest {
             }
             if (eventName.startsWith("abort")) {
                 throw new AbortSchedulerException("abort scheduler requested from " + eventName);
+            }
+        }
+    }
+
+    private static class MyStopTestRunEvent extends EventAdapter<EventContext> {
+
+        public MyStopTestRunEvent(EventContext eventContext) {
+            super(eventContext, EventLoggerStdOut.INSTANCE_DEBUG);
+        }
+
+        @Override
+        public void keepAlive() {
+            String eventName = eventContext.getName();
+            logger.info("keep alive called for " + eventName);
+            if (eventName.startsWith("stop")) {
+                throw new StopTestRunException("stop test run requested from " + eventName);
             }
         }
     }

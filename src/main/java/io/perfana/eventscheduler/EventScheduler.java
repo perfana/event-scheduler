@@ -80,6 +80,10 @@ public final class EventScheduler {
             .peek(e -> logger.info("Found 'ReadyForStart' participant: " + e.getName()))
             .count();
 
+        eventSchedulerContext.getEventContexts().stream()
+                .filter(EventContext::isContinueOnKeepAliveParticipant)
+                .forEach(e -> logger.info("Found 'ContinueOnKeepAlive' participant: " + e.getName()));
+
         this.startTest = createStartTest();
 
         // add startTest to this receiver... if needed...

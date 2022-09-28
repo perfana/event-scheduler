@@ -36,19 +36,17 @@ public class EventBroadcasterAsync implements EventBroadcaster {
     private final ExecutorService executor;
     private final List<Event> events;
     private final EventLogger logger;
+    private final int continueTestRunParticipantsCount;
 
     EventBroadcasterAsync(Collection<Event> events, EventLogger logger, ExecutorService executor) {
         this.events = events == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(events));
         this.logger = logger == null ? EventLoggerDevNull.INSTANCE : logger;
         this.executor = executor == null ? Executors.newCachedThreadPool() : executor;
+        this.continueTestRunParticipantsCount = (int) this.events.stream().filter(Event::isContinueOnKeepAliveParticipant).count();
     }
 
-    public EventBroadcasterAsync(Collection<Event> events, EventLogger logger) {
-        this(events, logger, null);
-    }
-
-    public EventBroadcasterAsync(Collection<Event> events) {
-        this(events, null, null);
+    public EventBroadcasterAsync(Collection<Event> events, EventLogger eventLogger) {
+        this(events, eventLogger, null);
     }
 
     /**
@@ -179,7 +177,7 @@ public class EventBroadcasterAsync implements EventBroadcaster {
                     "'keep alive' tasks");
         }
         logger.debug("Keep Alive found exceptions: " + exceptions);
-        throwAbortOrKillWitchException(exceptions);
+        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount);
     }
 
     /**

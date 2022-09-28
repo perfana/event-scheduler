@@ -122,6 +122,7 @@ public class EventSchedulerTest
         Mockito.verify(event, times(3)).beforeTest();
         Mockito.verify(event, times(3)).startTest();
         Mockito.verify(event, times(3)).afterTest();
+        Mockito.verify(event, times(3)).isContinueOnKeepAliveParticipant();
         // this seems a timing issue if they are called or not, they are called in ide test, not in gradle test all
         Mockito.verify(event, atMost(3)).keepAlive();
 
@@ -217,12 +218,12 @@ public class EventSchedulerTest
 
         EventConfig eventConfig1 = EventConfig.builder()
             .name("myEvent1")
-            .isReadyForStartParticipant(true)
+            .readyForStartParticipant(true)
             .testConfig(testConfig)
             .build();
         EventConfig eventConfig2 = EventConfig.builder()
             .name("myEvent2")
-            .isReadyForStartParticipant(true)
+            .readyForStartParticipant(true)
             .build();
 
         EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
@@ -380,6 +381,7 @@ public class EventSchedulerTest
     private static class CheckCallbacks {
         public volatile boolean killCalled = false;
         public volatile boolean abortCalled = false;
+        public volatile boolean stopCalled = false;
     }
 
     static class KillSwitchExceptionEvent extends EventAdapter<EventContext> {
@@ -409,7 +411,7 @@ public class EventSchedulerTest
 
         EventConfig eventConfig1 = EventConfig.builder()
             .name("myEvent1")
-            .isReadyForStartParticipant(false)
+            .readyForStartParticipant(false)
             .testConfig(testConfig)
             .build();
 
@@ -438,6 +440,11 @@ public class EventSchedulerTest
             public void abort(String message) {
                 checkCallbacks.abortCalled = true;
             }
+
+            @Override
+            public void stop(String message) {
+                checkCallbacks.stopCalled = true;
+            }
         };
 
         // This unit test would fail when calling the "addKillSwitch" instead
@@ -461,6 +468,7 @@ public class EventSchedulerTest
 
         assertFalse(checkCallbacks.abortCalled);
         assertTrue(checkCallbacks.killCalled);
+        assertFalse(checkCallbacks.stopCalled);
 
     }
 

@@ -52,7 +52,7 @@ public interface Event {
      * remove the test environment.
      */
     void afterTest();
-    
+
     /**
      * Called for each keep alive event for this test run.
      */
@@ -82,5 +82,8 @@ public interface Event {
     default Collection<String> allowedCustomEvents() {
         return Collections.emptyList();
     }
+
+    boolean isContinueOnKeepAliveParticipant();
+    boolean isReadyForStartParticipant();
 
 }

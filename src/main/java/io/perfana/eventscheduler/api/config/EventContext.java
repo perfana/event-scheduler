@@ -43,14 +43,16 @@ public class EventContext {
     boolean enabled;
     String scheduleScript;
     TestContext testContext;
-    boolean isReadyForStartParticipant;
+    boolean readyForStartParticipant;
+    boolean continueOnKeepAliveParticipant;
 
-    protected EventContext(EventContext context, String eventFactory, boolean isReadyForStartParticipant) {
+    protected EventContext(EventContext context, String eventFactory) {
         this.name = context.name;
         this.eventFactory = eventFactory;
         this.enabled = context.enabled;
         this.scheduleScript = context.scheduleScript;
         this.testContext = context.testContext;
-        this.isReadyForStartParticipant = isReadyForStartParticipant;
+        this.readyForStartParticipant = context.readyForStartParticipant;
+        this.continueOnKeepAliveParticipant = context.continueOnKeepAliveParticipant;
     }
 }

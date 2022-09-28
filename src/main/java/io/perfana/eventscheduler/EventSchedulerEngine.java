@@ -175,6 +175,9 @@ class EventSchedulerEngine {
                 else if (exceptionType == SchedulerExceptionType.ABORT) {
                     schedulerExceptionHandler.abort(e.getMessage());
                 }
+                else if (exceptionType == SchedulerExceptionType.STOP) {
+                    schedulerExceptionHandler.stop(e.getMessage());
+                }
             }
             else {
                 logger.warn("SchedulerHandlerException " + exceptionType + " was thrown, but no SchedulerExceptionHandler is present. Message: " + message);

@@ -19,5 +19,5 @@ package io.perfana.eventscheduler.api;
  *
  */
 public enum SchedulerExceptionType {
-    NONE, ABORT, KILL
+    NONE, ABORT, KILL, STOP
 }

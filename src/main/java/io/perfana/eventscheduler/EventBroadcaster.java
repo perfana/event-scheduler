@@ -17,8 +17,10 @@ package io.perfana.eventscheduler;
 
 import io.perfana.eventscheduler.api.CustomEvent;
 import io.perfana.eventscheduler.api.EventCheck;
+import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import io.perfana.eventscheduler.exception.handler.AbortSchedulerException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
+import io.perfana.eventscheduler.exception.handler.StopTestRunException;
 
 import java.util.List;
 import java.util.Queue;
@@ -41,19 +43,32 @@ public interface EventBroadcaster {
 
     void shutdownAndWaitAllTasksDone(long timeoutSeconds);
 
-    default void throwAbortOrKillWitchException(Queue<Throwable> exceptions) {
+    default void throwAbortOrKillWitchOrStopTestRunException(Queue<Throwable> exceptions, int stopTestExceptionCount) {
         exceptions.stream()
-            .filter(t -> t instanceof AbortSchedulerException)
+            .filter(AbortSchedulerException.class::isInstance)
             .findFirst()
             .ifPresent(abort -> {
                 throw new AbortSchedulerException("Found abort scheduler request during keep-alive broadcast: " + abort.getMessage());
             });
 
         exceptions.stream()
-            .filter(t -> t instanceof KillSwitchException)
+            .filter(KillSwitchException.class::isInstance)
             .findFirst()
             .ifPresent(kill -> {
                 throw new KillSwitchException("Found kill switch request during keep-alive broadcast: " + kill.getMessage());
             });
+
+        long currentStopRunExceptionCount = exceptions.stream()
+                .filter(StopTestRunException.class::isInstance)
+                .count();
+        if (stopTestExceptionCount > 0) {
+            // if less StopTestRunExceptions than expected: continue running
+            if (currentStopRunExceptionCount == stopTestExceptionCount) {
+                throw new StopTestRunException("Found " + currentStopRunExceptionCount + " stop run exceptions.");
+            }
+            else if (currentStopRunExceptionCount > stopTestExceptionCount) {
+                throw new EventSchedulerRuntimeException("More StopTestRunExceptions received (" + currentStopRunExceptionCount + "/" + stopTestExceptionCount + ") than expected, check your config. Are events throwing StopTestRunExceptions while not a ContinueOnKeepAlive participant?");
+            }
+        }
     }
 }

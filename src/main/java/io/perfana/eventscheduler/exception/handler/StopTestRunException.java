@@ -13,15 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.perfana.eventscheduler.api;
+package io.perfana.eventscheduler.exception.handler;
+
+import io.perfana.eventscheduler.api.SchedulerExceptionType;
 
 /**
- * When a keep-alive event throws a KillSwitchException, AbortSchedulerException or StopTestRunException,
- * the kill, abort or stop of this handler will be invoked.
+ * An event can throw StopTestRunException from keepAlive event to
+ * indicate that the test run can be stopped. Only when all registered
+ * "continueOnKeepAlive" participants throw this exception, the test run
+ * shall be stopped.
  */
-public interface SchedulerExceptionHandler {
-    void kill(String message);
-    void abort(String message);
+public class StopTestRunException extends SchedulerHandlerException {
+    public StopTestRunException(String message) {
+        super(message);
+    }
 
-    void stop(String message);
+    @Override
+    public SchedulerExceptionType getExceptionType() {
+        return SchedulerExceptionType.STOP;
+    }
 }
