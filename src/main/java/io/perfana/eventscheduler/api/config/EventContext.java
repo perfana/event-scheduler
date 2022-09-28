@@ -55,4 +55,15 @@ public class EventContext {
         this.readyForStartParticipant = context.readyForStartParticipant;
         this.continueOnKeepAliveParticipant = context.continueOnKeepAliveParticipant;
     }
+
+    /**
+     * @deprecated
+     *
+     * @param isReadyForStartParticipant this is deprecated and ignored, use the readyForStartParticipant in
+     *                                   event contexts
+     */
+    @Deprecated
+    protected EventContext(EventContext context, String eventFactory, boolean isReadyForStartParticipant) {
+        this(context, eventFactory);
+    }
 }
