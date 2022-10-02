@@ -12,6 +12,7 @@ To be used in combination with plugins:
 * [test-events-loadrunner-cloud](https://github.com/perfana/test-events-loadrunner-cloud) - connect with LoadRunner Cloud, start/stop tests 
 * [test-events-wiremock](https://github.com/perfana/test-events-wiremock) - dynamically change wiremock delays at specified times 
 * [test-events-springboot](https://github.com/perfana/test-events-springboot) - connect to spring boot app, e.g. fetch values of settings via actuator
+* [test-events-test-run-config-command](https://github.com/perfana/test-events-test-run-config-command) - send test run config to Perfana, e.g. k8s settings or current git commit hash
 
 Custom plugins can be build as described below. Tip: base a new plugin on the test-events-hello-world example.
 
@@ -20,8 +21,8 @@ Custom plugins can be build as described below. Tip: base a new plugin on the te
 The following event-scheduler Maven plugins can be used, these are ready-to-go:
 
 * [event-scheduler-maven-plugin](https://github.com/perfana/event-scheduler-maven-plugin) runs plain event-scheduler via Maven
-* [event-gatling-maven-plugin](https://github.com/perfana/events-gatling-maven-plugin) runs Gatling load test via Maven with event-scheduler build-in
-* [event-jmeter-maven-plugin](https://github.com/perfana/events-jmeter-maven-plugin)  runs jMeter load test via Maven with event-scheduler build-in
+* [events-gatling-maven-plugin](https://github.com/perfana/events-gatling-maven-plugin) runs Gatling load test via Maven with event-scheduler build-in
+* [events-jmeter-maven-plugin](https://github.com/perfana/events-jmeter-maven-plugin)  runs jMeter load test via Maven with event-scheduler build-in
 
 ## event-scheduler Maven plugin example
 
@@ -43,27 +44,27 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
             <schedulerEnabled>true</schedulerEnabled>
             <failOnError>true</failOnError>
             <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
+            <testConfig>
+                <systemUnderTest>my-application</systemUnderTest>
+                <version>1.2.3</version>
+                <workload>stress-test</workload>
+                <testEnvironment>loadtest</testEnvironment>
+                <testRunId>my-test-123</testRunId>
+                <buildResultsUrl>http://localhost:4000/my-test-123</buildResultsUrl>
+                <rampupTimeInSeconds>1</rampupTimeInSeconds>
+                <constantLoadTimeInSeconds>4</constantLoadTimeInSeconds>
+                <annotations>${annotation}</annotations>
+                <tags>
+                    <tag>tag1-value</tag>
+                    <tag>tag2-value</tag>
+                </tags>
+            </testConfig>
+            <scheduleScript>
+                PT1S|restart(restart with 2 replicas)|{ server:'myserver' replicas:2 tags: [ 'first', 'second' ] }
+            </scheduleScript>
             <eventConfigs>
                 <eventConfig implementation="io.perfana.helloworld.event.HelloWorldEventConfig">
                     <name>HelloEvent1</name>
-                    <testConfig>
-                        <systemUnderTest>my-application</systemUnderTest>
-                        <version>1.2.3</version>
-                        <workload>stress-test</workload>
-                        <testEnvironment>loadtest</testEnvironment>
-                        <testRunId>my-test-123</testRunId>
-                        <buildResultsUrl>http://localhost:4000/my-test-123</buildResultsUrl>
-                        <rampupTimeInSeconds>1</rampupTimeInSeconds>
-                        <constantLoadTimeInSeconds>4</constantLoadTimeInSeconds>
-                        <annotations>${annotation}</annotations>
-                        <tags>
-                            <tag>tag1-value</tag>
-                            <tag>tag2-value</tag>
-                        </tags>
-                    </testConfig>
-                    <scheduleScript>
-                        PT1S|restart(restart with 2 replicas)|{ server:'myserver' replicas:2 tags: [ 'first', 'second' ] }
-                    </scheduleScript>
                     <myRestService>https://my-rest-api</myRestService>
                     <myCredentials>${env.SECRET}</myCredentials>
                     <helloMessage>Hello, Hello World!</helloMessage>
@@ -179,10 +180,11 @@ public String getEventFactory() {
 Events triggers available, with example usage:
 * _before test_ - use to restart servers or setup/cleanup environment
 * _after test_ - start generating reports, clean up environment
+* _start test_ - start (external) load tests
 * _keep alive calls_ - send keep alive calls to any remote API 
 * _check result_ - after a test check results for the event, if failures are present the CI build can fail 
 * _abort test_ - abort a running test, do not run to end
-* _custom events_ - any event you can define in the event scheduler, e.g. failover, increase stub delay times or scale-down events 
+* _stop test_ - stop a test via an explicit call
 * _custom events_ - any event you can define in the event scheduler, e.g. failover, increase stub delay times or scale-down events 
 
 The keep alive is scheduled each 15 seconds during the test. The keep-alive schedule can also be changed.
@@ -283,12 +285,24 @@ method that you can implement to handle these exceptions.
 An example is that the analysis tool in use discovers too high response times and decides to kill the
 running test.
 
+## wait for start
+
+In the before-test events, if the plugin is a `isReadyForStartParticipant`, the plugin needs
+to send a Go! message to say the before-test event has completed its work. Only
+when all ready-for-start participants have send a Go! message, the test run will start.
+
+## continue at keep alive
+
+Plugins that are a `continueOnKeepAliveParticipant` can send a `StopTestRunException` to indicate
+that this plugin is done and the test run can stop. Only when _all_ `continueOnKeepAliveParticipant`s 
+have send a `StopTestException`, the test run will stop.
+
 ## fat jar
 
 If you create a fat jar that contains both the `event-scheduler` and one or more `test-event` plugins, such
 as the `perfana-java-client`, you probably run into an issue that not all interface implementation defined in 
 META-INF/services are registered correctly. This results in class loading issues, like the following:
-" io.perfana.event.PerfanaEventFactory not registered via META-INF/services".
+"io.perfana.event.PerfanaEventFactory not registered via META-INF/services".
 
 If you use the `maven-shade-plugin` you can solve this by adding the `org.apache.maven.plugins.shade.resource.ServicesResourceTransformer`
 to the transformers section of the configuration.

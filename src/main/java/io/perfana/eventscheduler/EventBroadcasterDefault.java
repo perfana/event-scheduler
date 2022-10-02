@@ -60,7 +60,7 @@ public class EventBroadcasterDefault implements EventBroadcaster {
         Queue<Throwable> exceptions = new ConcurrentLinkedQueue<>();
         events.forEach(catchExceptionWrapper(Event::keepAlive, exceptions));
         logger.debug("Keep Alive found exceptions: " + exceptions);
-        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount);
+        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount, logger);
     }
 
     @Override

@@ -17,6 +17,7 @@ package io.perfana.eventscheduler;
 
 import io.perfana.eventscheduler.api.CustomEvent;
 import io.perfana.eventscheduler.api.EventCheck;
+import io.perfana.eventscheduler.api.EventLogger;
 import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import io.perfana.eventscheduler.exception.handler.AbortSchedulerException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
@@ -43,7 +44,7 @@ public interface EventBroadcaster {
 
     void shutdownAndWaitAllTasksDone(long timeoutSeconds);
 
-    default void throwAbortOrKillWitchOrStopTestRunException(Queue<Throwable> exceptions, int stopTestExceptionCount) {
+    default void throwAbortOrKillWitchOrStopTestRunException(Queue<Throwable> exceptions, int stopTestExceptionCount, EventLogger logger) {
         exceptions.stream()
             .filter(AbortSchedulerException.class::isInstance)
             .findFirst()
@@ -62,6 +63,7 @@ public interface EventBroadcaster {
                 .filter(StopTestRunException.class::isInstance)
                 .count();
         if (stopTestExceptionCount > 0) {
+            logger.info("Found " + currentStopRunExceptionCount + " of expected " + stopTestExceptionCount + " stop run exceptions.");
             // if less StopTestRunExceptions than expected: continue running
             if (currentStopRunExceptionCount == stopTestExceptionCount) {
                 throw new StopTestRunException("Found " + currentStopRunExceptionCount + " stop run exceptions.");

@@ -177,7 +177,7 @@ public class EventBroadcasterAsync implements EventBroadcaster {
                     "'keep alive' tasks");
         }
         logger.debug("Keep Alive found exceptions: " + exceptions);
-        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount);
+        throwAbortOrKillWitchOrStopTestRunException(exceptions, continueTestRunParticipantsCount, logger);
     }
 
     /**

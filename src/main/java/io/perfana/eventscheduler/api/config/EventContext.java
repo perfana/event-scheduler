@@ -59,6 +59,8 @@ public class EventContext {
     /**
      * @deprecated
      *
+     * @param context the event context
+     * @param eventFactory the event factory
      * @param isReadyForStartParticipant this is deprecated and ignored, use the readyForStartParticipant in
      *                                   event contexts
      */
