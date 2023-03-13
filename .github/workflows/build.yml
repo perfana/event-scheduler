@@ -1,6 +1,4 @@
-# This workflow will build a Java project with the maven wrapper
-
-name: Java Build with Maven wrapper
+name: Java Build with Gradle wrapper
 
 on:
   push:
