@@ -24,4 +24,4 @@ jobs:
         # env TZ: needed for unit tests with time to work correctly
         env:
           TZ: Europe/Amsterdam
-        run: ./gradlew build
+        run: ./gradlew check
