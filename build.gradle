@@ -21,8 +21,11 @@ group = "io.perfana"
 version = file("VERSION").readLines().first()
 description = "event-scheduler"
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
 
 dependencies {
     implementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
