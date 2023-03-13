@@ -44,7 +44,8 @@ public final class EventScheduler {
 
     private final Collection<CustomEvent> scheduleEvents;
 
-    private final EventSchedulerContext eventSchedulerContext;
+    // needs to be updated for new testRunId
+    private final AtomicReference<EventSchedulerContext> eventSchedulerContext = new AtomicReference<>();
 
     private final AtomicReference<SchedulerExceptionHandler> schedulerExceptionHandler = new AtomicReference<>();
 
@@ -54,9 +55,11 @@ public final class EventScheduler {
 
     private final AtomicInteger goMessageCount = new AtomicInteger(0);
 
-    private final StartTest startTest;
+    private final StartTestFunction startTestFunction;
 
     private final int waitForGoMessagesCount;
+
+    private volatile String testRunIdOverride;
 
     EventScheduler(EventBroadcaster broadcaster,
                    Collection<CustomEvent> scheduleEvents,
@@ -69,7 +72,7 @@ public final class EventScheduler {
         this.checkResultsEnabled = eventSchedulerContext.isSchedulerEnabled();
         this.broadcaster = broadcaster;
         this.scheduleEvents = scheduleEvents;
-        this.eventSchedulerContext = eventSchedulerContext;
+        this.eventSchedulerContext.set(eventSchedulerContext);
         this.logger = logger;
         this.eventSchedulerEngine = eventSchedulerEngine;
         this.schedulerExceptionHandler.set(schedulerExceptionHandler);
@@ -84,33 +87,46 @@ public final class EventScheduler {
                 .filter(EventContext::isContinueOnKeepAliveParticipant)
                 .forEach(e -> logger.info("Found 'ContinueOnKeepAlive' participant: " + e.getName()));
 
-        this.startTest = createStartTest();
+        this.messageBus.addReceiver(m -> {
+            if (m.getMessage().startsWith("TestRunId:")) {
+                String testRunId = m.getMessage().substring("TestRunId:".length()).trim();
+                if (!"none".equalsIgnoreCase(testRunId)) {
+                    testRunIdOverride = testRunId;
+                }
+                else {
+                    logger.debug("Received 'none' as TestRunId, ignore it!");
+                }
+                logger.info("Received new TestRunId: " + testRunId + " from " + m.getPluginName());
+            }
+        });
+
+        this.startTestFunction = createStartTestFunction();
 
         // add startTest to this receiver... if needed...
         if (waitForGoMessagesCount != 0) {
             logger.info("Wait for Go! messages is active, need " + waitForGoMessagesCount + " Go! messages to start!");
-            this.messageBus.addReceiver(m -> checkMessageForGo(m, startTest, waitForGoMessagesCount));
+            this.messageBus.addReceiver(m -> checkMessageForGo(m, startTestFunction, waitForGoMessagesCount));
         }
     }
 
-    private StartTest createStartTest() {
+    private StartTestFunction createStartTestFunction() {
         return () -> {
             broadcaster.broadcastStartTest();
             // Note that schedulerExceptionHandler field can be set later, so it's value can change over time!
             // The schedulerExceptionHandler can be null in constructor.
             // Can result in: "SchedulerHandlerException KILL was thrown, but no SchedulerExceptionHandler is present."
-            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.getKeepAliveInterval(), broadcaster, schedulerExceptionHandler.get());
+            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.get().getKeepAliveInterval(), broadcaster, schedulerExceptionHandler.get());
             eventSchedulerEngine.startCustomEventScheduler(scheduleEvents, broadcaster);
         };
     }
 
-    private void checkMessageForGo(EventMessage m, StartTest startTest, int totalGoMessages) {
+    private void checkMessageForGo(EventMessage m, StartTestFunction startTestFunction, int totalGoMessages) {
         if ("go!".equalsIgnoreCase(m.getMessage())) {
             int count = goMessageCount.incrementAndGet();
             logger.info("Got 'Go! message' from " + m.getPluginName() + " now counted " + count + " 'Go! messages' of " + totalGoMessages + " needed.");
             if (count == totalGoMessages) {
                 // Go!
-                startTest.start();
+                startTestFunction.start();
             }
         }
     }
@@ -128,13 +144,19 @@ public final class EventScheduler {
             logger.warn("unexpected call to start session, session was active already, ignore call!");
         }
         else {
-            sendTestConfig();
 
             broadcaster.broadcastBeforeTest();
 
+            if (testRunIdOverride != null) {
+                TestContext testContext = this.eventSchedulerContext.get().getTestContext().withTestRunId(testRunIdOverride);
+                this.eventSchedulerContext.set(this.eventSchedulerContext.get().withTestContext(testContext));
+            }
+
+            sendTestConfig();
+
             if (waitForGoMessagesCount == 0) {
                 logger.info("start test session");
-                startTest.start();
+                startTestFunction.start();
             }
             // otherwise, wait for the Go! messages callbacks
         }
@@ -222,14 +244,14 @@ public final class EventScheduler {
     }
 
     public EventSchedulerContext getEventSchedulerContext() {
-        return eventSchedulerContext;
+        return eventSchedulerContext.get();
     }
 
     public void sendMessage(EventMessage message) {
         messageBus.send(message);
     }
 
-    private interface StartTest {
+    private interface StartTestFunction {
         void start();
     }
 

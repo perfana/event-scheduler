@@ -143,17 +143,23 @@ public class EventSchedulerTest
 
         @Override
         public void beforeTest() {
-            super.beforeTest();
             EventMessage message = EventMessage.builder()
                 .pluginName(EventWithMessageBus.class.getSimpleName() + "-" + eventContext.getName())
                 .message("Go!")
                 .build();
             eventMessageBus.send(message);
+
+            // here would be a call to Perfana /api/init
+
+            EventMessage newTestRunIdMessage = EventMessage.builder()
+                .pluginName(EventWithMessageBus.class.getSimpleName() + "-" + eventContext.getName())
+                .message("TestRunId: test-123")
+                .build();
+            eventMessageBus.send(newTestRunIdMessage);
         }
 
         @Override
         public void startTest() {
-            super.startTest();
             startTestCounter.incrementAndGet();
         }
     }
@@ -176,6 +182,7 @@ public class EventSchedulerTest
             .name("myEvent2").testConfig(testConfig).build();
 
         EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
+
         EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testLogger, eventMessageBus);
         EventWithMessageBus event2 = new EventWithMessageBus(eventConfig2.toContext(), testLogger, eventMessageBus);
 
@@ -499,4 +506,46 @@ public class EventSchedulerTest
         assertTrue(receivedMessage.get());
 
     }
+
+    @Test
+    public void createEventSchedulerWithMessageBusWithNewTestRunId() {
+
+        EventLogger testLogger = EventLoggerStdOut.INSTANCE_DEBUG;
+
+        EventFactoryProvider provider = Mockito.mock(EventFactoryProvider.class);
+
+        @SuppressWarnings("unchecked")
+        EventFactory<EventContext> eventFactory = Mockito.mock(EventFactory.class);
+
+        TestConfig testConfig = TestConfig.builder().build();
+
+        EventConfig eventConfig1 = EventConfig.builder()
+                .testConfig(testConfig)
+                .name("myEvent1").build();
+
+        EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
+        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testLogger, eventMessageBus);
+
+        Mockito.when(eventFactory.create(any(), any(), any()))
+                .thenReturn(event1);
+        Mockito.when(provider.factoryByClassName(any()))
+                .thenReturn(Optional.of(eventFactory));
+
+        EventSchedulerConfig eventSchedulerConfig = EventSchedulerConfig.builder()
+                .keepAliveIntervalInSeconds(1)
+                .eventConfig(eventConfig1)
+                .build();
+
+        EventScheduler scheduler = new EventSchedulerBuilderInternal()
+                .setEventSchedulerContext(eventSchedulerConfig.toContext(testLogger))
+                .setLogger(testLogger)
+                .setEventFactoryProvider(provider)
+                .setEventMessageBus(eventMessageBus)
+                .build();
+
+        scheduler.startSession();
+
+        assertEquals("test-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
+    }
+
 }

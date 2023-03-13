@@ -15,10 +15,7 @@
  */
 package io.perfana.eventscheduler.api.config;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Singular;
-import lombok.Value;
+import lombok.*;
 import net.jcip.annotations.Immutable;
 
 import java.time.Duration;
@@ -33,6 +30,7 @@ public class TestContext {
     String testEnvironment;
     String productName;
     String dashboardName;
+    @With
     String testRunId;
     String buildResultsUrl;
     String version;
