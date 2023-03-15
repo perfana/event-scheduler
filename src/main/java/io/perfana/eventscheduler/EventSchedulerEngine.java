@@ -84,7 +84,7 @@ class EventSchedulerEngine {
         }
         if (executorCustomEvents != null) {
             List<Runnable> runnables = executorCustomEvents.shutdownNow();
-            if (runnables.size() > 0) {
+            if (!runnables.isEmpty()) {
                 if (runnables.size() == 1) {
                     logger.warn("There is 1 custom event that is not (fully) executed!");
                 }

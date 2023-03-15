@@ -82,7 +82,12 @@ public final class EventScheduler {
             testContext.set(testContextInitializer.extendTestContext(testContext.get()));
         });
 
-        this.eventSchedulerContext = eventSchedulerContext.withTestContext(testContext.get());
+        List<EventContext> newEventContexts = eventSchedulerContext.getEventContexts().stream()
+                .map(eventContext -> eventContext.withTestContext(testContext.get()))
+                .collect(Collectors.toList());
+        EventSchedulerContext newEventSchedulerContext = eventSchedulerContext.withTestContext(testContext.get());
+        EventSchedulerContext newNewEventSchedulerContext = newEventSchedulerContext.withEventContexts(newEventContexts);
+        this.eventSchedulerContext = newNewEventSchedulerContext;
 
         this.waitForGoMessagesCount = (int) eventSchedulerContext.getEventContexts().stream()
             .filter(EventContext::isReadyForStartParticipant)

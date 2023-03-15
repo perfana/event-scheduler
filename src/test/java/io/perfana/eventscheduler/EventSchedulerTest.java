@@ -26,6 +26,7 @@ import io.perfana.eventscheduler.exception.EventCheckFailureException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
 import io.perfana.eventscheduler.log.EventLoggerStdOut;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
@@ -529,6 +530,8 @@ public class EventSchedulerTest
                 .testConfig(testConfig)
                 .name("myEvent1").build();
 
+        ArgumentCaptor<EventContext> eventContextCaptor = ArgumentCaptor.forClass(EventContext.class);
+
         Mockito.when(eventFactory.create(any(), any(), any()))
                 .thenReturn(new EventAdapter<EventContext>(eventConfig1.toContext(), null, testLogger) {
                     @Override
@@ -536,6 +539,7 @@ public class EventSchedulerTest
                         logger.info("keepAlive called");
                     }
                 });
+
 
         Mockito.when(testContextInitializerFactoryProvider.getTestContextInitializerFactories())
                         .thenReturn(Collections.singletonList(testContextInitializerFactory));
@@ -565,6 +569,9 @@ public class EventSchedulerTest
         scheduler.startSession();
 
         assertEquals("test-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
+        verify(eventFactory, times(1)).create(eventContextCaptor.capture(), any(), any());
+        //assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
+
     }
 
 }

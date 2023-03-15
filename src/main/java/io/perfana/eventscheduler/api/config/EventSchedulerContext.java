@@ -38,6 +38,7 @@ public class EventSchedulerContext {
     @Builder.Default
     String scheduleScript = "";
     @Singular
+    @With
     List<EventContext> eventContexts;
     @Builder.Default
     @With

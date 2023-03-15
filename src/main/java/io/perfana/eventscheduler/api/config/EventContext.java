@@ -15,10 +15,7 @@
  */
 package io.perfana.eventscheduler.api.config;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
 import lombok.experimental.NonFinal;
 import net.jcip.annotations.Immutable;
 
@@ -42,6 +39,7 @@ public class EventContext {
     String eventFactory;
     boolean enabled;
     String scheduleScript;
+    @With
     TestContext testContext;
     boolean readyForStartParticipant;
     boolean continueOnKeepAliveParticipant;
