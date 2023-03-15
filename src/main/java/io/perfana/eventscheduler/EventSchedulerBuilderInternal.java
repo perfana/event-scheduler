@@ -20,6 +20,7 @@ import io.perfana.eventscheduler.api.config.EventContext;
 import io.perfana.eventscheduler.api.config.EventSchedulerContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 import io.perfana.eventscheduler.event.EventFactoryProvider;
+import io.perfana.eventscheduler.event.TestContextInitializerFactoryProvider;
 import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import io.perfana.eventscheduler.generator.EventGeneratorDefault;
 import io.perfana.eventscheduler.generator.EventGeneratorFactoryDefault;
@@ -49,6 +50,8 @@ class EventSchedulerBuilderInternal {
     private EventLogger logger = EventLoggerDevNull.INSTANCE;
 
     private EventFactoryProvider eventFactoryProvider;
+
+    private TestContextInitializerFactoryProvider testContextInitializerFactoryProvider;
 
     private EventBroadcasterFactory eventBroadcasterFactory;
 
@@ -83,15 +86,20 @@ class EventSchedulerBuilderInternal {
         return this;
     }
 
+    public EventSchedulerBuilderInternal setTestContextInitializerFactoryProvider(TestContextInitializerFactoryProvider testContextInitializerFactoryProvider) {
+        this.testContextInitializerFactoryProvider = testContextInitializerFactoryProvider;
+        return this;
+    }
+
     public EventScheduler build() {
         return build(null);
     }
 
     /**
      * Clients can use this build method to define a different classloader.
-     *
+     * <br/>
      * By default the classloader from the current thread is used to load event providers and related resources.
-     *
+     * <br/>
      * For example in a Gradle plugin the thread classpath is limited to plugin classes,
      * and does not contain classes from the project context, such as the custom event providers used in the project.
      *
@@ -104,6 +112,21 @@ class EventSchedulerBuilderInternal {
             throw new EventSchedulerRuntimeException("eventSchedulerContext must be set, it is null.");
         }
 
+        // check if provider is already injected (for testing)
+        TestContextInitializerFactoryProvider testContextInitProvider = (testContextInitializerFactoryProvider == null)
+                ? TestContextInitializerFactoryProvider.createInstanceFromClasspath(classLoader)
+                : testContextInitializerFactoryProvider;
+
+        Map<String, EventContext> eventContextMap = eventSchedulerContext.getEventContexts().stream()
+                .collect(Collectors.toMap(e -> e.getClass().getName(), e -> e,
+                        (e1, e2) -> { logger.warn("found duplicate event context: " + e2.getEventFactory() + "-" + e2.getName()); return e1; }));
+
+        List<TestContextInitializerFactory> testContextInitializerFactories = testContextInitProvider.getTestContextInitializerFactories();
+
+        List<TestContextInitializer> testContextInitializers = testContextInitializerFactories.stream()
+                .map(factory -> factory.create(eventContextMap.get(factory.getEventContextClassname()), logger))
+                .collect(Collectors.toList());
+
         EventMessageBus messageBus = (this.eventMessageBus == null)
             ? new EventMessageBusSimple()
             : this.eventMessageBus;
@@ -113,6 +136,7 @@ class EventSchedulerBuilderInternal {
         List<CustomEvent> customEvents =
                 generateCustomEventSchedule(customEventsText, logger, classLoader);
 
+        // check if provider is already injected (for testing)
         EventFactoryProvider provider = (eventFactoryProvider == null)
                 ? EventFactoryProvider.createInstanceFromClasspath(classLoader)
                 : eventFactoryProvider;
@@ -137,13 +161,14 @@ class EventSchedulerBuilderInternal {
             : eventSchedulerEngine;
 
         return new EventScheduler(
-            broadcaster,
-            customEvents,
-            eventSchedulerContext,
-            messageBus,
-            logger,
-            eventSchedulerEngine,
-            schedulerExceptionHandler);
+                broadcaster,
+                customEvents,
+                eventSchedulerContext,
+                messageBus,
+                logger,
+                eventSchedulerEngine,
+                schedulerExceptionHandler,
+                testContextInitializers);
     }
 
     @SuppressWarnings("unchecked")
@@ -200,9 +225,9 @@ class EventSchedulerBuilderInternal {
      * Provide schedule event as "duration|eventname(description)|json-settings".
      * The duration is in ISO-8601 format period format, e.g. 3 minutes 15 seconds
      * is PT3M15S.
-     *
+     * <br/>
      * One schedule event per line.
-     *
+     * <br/>
      * Or provide an EventScheduleGenerator implementation as:
      *
      * <pre>

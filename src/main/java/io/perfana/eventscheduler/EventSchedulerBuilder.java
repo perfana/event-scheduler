@@ -26,6 +26,8 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public class EventSchedulerBuilder {
 
+    private EventSchedulerBuilder() {}
+
     public static EventScheduler of(EventSchedulerConfig eventSchedulerConfig, EventLogger logger) {
         return of(eventSchedulerConfig, logger, null);
     }
@@ -45,11 +47,6 @@ public class EventSchedulerBuilder {
             .setEventSchedulerContext(schedulerContext)
             .setCustomEvents(eventSchedulerConfig.getScheduleScript())
             .setLogger(logger);
-
-//        List<EventContext> eventContexts = schedulerContext.getEventContexts();
-//        if (eventContexts != null) {
-//            eventContexts.forEach(eventSchedulerBuilder::addEvent);
-//        }
 
         return eventSchedulerBuilder.build(classLoader);
     }

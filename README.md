@@ -289,7 +289,7 @@ running test.
 
 In the before-test events, if the plugin is a `isReadyForStartParticipant`, the plugin needs
 to send a Go! message to say the before-test event has completed its work. Only
-when all ready-for-start participants have send a Go! message, the test run will start.
+when all ready-for-start participants have sent a Go! message, the test run will start.
 
 ## continue at keep alive
 

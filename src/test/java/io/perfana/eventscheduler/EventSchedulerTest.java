@@ -21,6 +21,7 @@ import io.perfana.eventscheduler.api.message.EventMessage;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 import io.perfana.eventscheduler.api.message.EventMessageReceiver;
 import io.perfana.eventscheduler.event.EventFactoryProvider;
+import io.perfana.eventscheduler.event.TestContextInitializerFactoryProvider;
 import io.perfana.eventscheduler.exception.EventCheckFailureException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
 import io.perfana.eventscheduler.log.EventLoggerStdOut;
@@ -28,6 +29,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -508,14 +510,18 @@ public class EventSchedulerTest
     }
 
     @Test
-    public void createEventSchedulerWithMessageBusWithNewTestRunId() {
+    public void createEventSchedulerWithNewTestRunId() {
 
         EventLogger testLogger = EventLoggerStdOut.INSTANCE_DEBUG;
 
         EventFactoryProvider provider = Mockito.mock(EventFactoryProvider.class);
 
+        TestContextInitializerFactoryProvider testContextInitializerFactoryProvider = Mockito.mock(TestContextInitializerFactoryProvider.class);
+
         @SuppressWarnings("unchecked")
         EventFactory<EventContext> eventFactory = Mockito.mock(EventFactory.class);
+
+        TestContextInitializerFactory testContextInitializerFactory = Mockito.mock(TestContextInitializerFactory.class);
 
         TestConfig testConfig = TestConfig.builder().build();
 
@@ -523,13 +529,26 @@ public class EventSchedulerTest
                 .testConfig(testConfig)
                 .name("myEvent1").build();
 
-        EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
-        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testLogger, eventMessageBus);
-
         Mockito.when(eventFactory.create(any(), any(), any()))
-                .thenReturn(event1);
+                .thenReturn(new EventAdapter<EventContext>(eventConfig1.toContext(), null, testLogger) {
+                    @Override
+                    public void keepAlive() {
+                        logger.info("keepAlive called");
+                    }
+                });
+
+        Mockito.when(testContextInitializerFactoryProvider.getTestContextInitializerFactories())
+                        .thenReturn(Collections.singletonList(testContextInitializerFactory));
+
+        Mockito.when(testContextInitializerFactoryProvider.factoryByClassName(any()))
+                .thenReturn(Optional.of(testContextInitializerFactory));
+
+        Mockito.when(testContextInitializerFactory.create(any(), any()))
+                .thenReturn(testContext -> testContext.withTestRunId("test-123"));
+
         Mockito.when(provider.factoryByClassName(any()))
                 .thenReturn(Optional.of(eventFactory));
+
 
         EventSchedulerConfig eventSchedulerConfig = EventSchedulerConfig.builder()
                 .keepAliveIntervalInSeconds(1)
@@ -540,7 +559,7 @@ public class EventSchedulerTest
                 .setEventSchedulerContext(eventSchedulerConfig.toContext(testLogger))
                 .setLogger(testLogger)
                 .setEventFactoryProvider(provider)
-                .setEventMessageBus(eventMessageBus)
+                .setTestContextInitializerFactoryProvider(testContextInitializerFactoryProvider)
                 .build();
 
         scheduler.startSession();

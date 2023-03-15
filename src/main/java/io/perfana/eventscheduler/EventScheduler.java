@@ -44,8 +44,7 @@ public final class EventScheduler {
 
     private final Collection<CustomEvent> scheduleEvents;
 
-    // needs to be updated for new testRunId
-    private final AtomicReference<EventSchedulerContext> eventSchedulerContext = new AtomicReference<>();
+    private final EventSchedulerContext eventSchedulerContext;
 
     private final AtomicReference<SchedulerExceptionHandler> schedulerExceptionHandler = new AtomicReference<>();
 
@@ -59,24 +58,31 @@ public final class EventScheduler {
 
     private final int waitForGoMessagesCount;
 
-    private volatile String testRunIdOverride;
-
     EventScheduler(EventBroadcaster broadcaster,
                    Collection<CustomEvent> scheduleEvents,
                    EventSchedulerContext eventSchedulerContext,
                    EventMessageBus messageBus,
                    EventLogger logger,
                    EventSchedulerEngine eventSchedulerEngine,
-                   SchedulerExceptionHandler schedulerExceptionHandler) {
+                   SchedulerExceptionHandler schedulerExceptionHandler,
+                   List<TestContextInitializer> testContextInitializers) {
         this.name = eventSchedulerContext.getTestContext().getTestRunId();
         this.checkResultsEnabled = eventSchedulerContext.isSchedulerEnabled();
         this.broadcaster = broadcaster;
         this.scheduleEvents = scheduleEvents;
-        this.eventSchedulerContext.set(eventSchedulerContext);
         this.logger = logger;
         this.eventSchedulerEngine = eventSchedulerEngine;
         this.schedulerExceptionHandler.set(schedulerExceptionHandler);
         this.messageBus = messageBus;
+
+        logger.info("init test context");
+        final AtomicReference<TestContext> testContext = new AtomicReference<>(eventSchedulerContext.getTestContext());
+        testContextInitializers.forEach(testContextInitializer -> {
+            logger.info("found TestContextInitializer: " + testContextInitializer.getClass().getName());
+            testContext.set(testContextInitializer.extendTestContext(testContext.get()));
+        });
+
+        this.eventSchedulerContext = eventSchedulerContext.withTestContext(testContext.get());
 
         this.waitForGoMessagesCount = (int) eventSchedulerContext.getEventContexts().stream()
             .filter(EventContext::isReadyForStartParticipant)
@@ -86,19 +92,6 @@ public final class EventScheduler {
         eventSchedulerContext.getEventContexts().stream()
                 .filter(EventContext::isContinueOnKeepAliveParticipant)
                 .forEach(e -> logger.info("Found 'ContinueOnKeepAlive' participant: " + e.getName()));
-
-        this.messageBus.addReceiver(m -> {
-            if (m.getMessage().startsWith("TestRunId:")) {
-                String testRunId = m.getMessage().substring("TestRunId:".length()).trim();
-                if (!"none".equalsIgnoreCase(testRunId)) {
-                    testRunIdOverride = testRunId;
-                }
-                else {
-                    logger.debug("Received 'none' as TestRunId, ignore it!");
-                }
-                logger.info("Received new TestRunId: " + testRunId + " from " + m.getPluginName());
-            }
-        });
 
         this.startTestFunction = createStartTestFunction();
 
@@ -115,7 +108,7 @@ public final class EventScheduler {
             // Note that schedulerExceptionHandler field can be set later, so it's value can change over time!
             // The schedulerExceptionHandler can be null in constructor.
             // Can result in: "SchedulerHandlerException KILL was thrown, but no SchedulerExceptionHandler is present."
-            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.get().getKeepAliveInterval(), broadcaster, schedulerExceptionHandler.get());
+            eventSchedulerEngine.startKeepAliveThread(name, eventSchedulerContext.getKeepAliveInterval(), broadcaster, schedulerExceptionHandler.get());
             eventSchedulerEngine.startCustomEventScheduler(scheduleEvents, broadcaster);
         };
     }
@@ -146,11 +139,6 @@ public final class EventScheduler {
         else {
 
             broadcaster.broadcastBeforeTest();
-
-            if (testRunIdOverride != null) {
-                TestContext testContext = this.eventSchedulerContext.get().getTestContext().withTestRunId(testRunIdOverride);
-                this.eventSchedulerContext.set(this.eventSchedulerContext.get().withTestContext(testContext));
-            }
 
             sendTestConfig();
 
@@ -244,7 +232,7 @@ public final class EventScheduler {
     }
 
     public EventSchedulerContext getEventSchedulerContext() {
-        return eventSchedulerContext.get();
+        return eventSchedulerContext;
     }
 
     public void sendMessage(EventMessage message) {
