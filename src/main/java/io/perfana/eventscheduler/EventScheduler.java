@@ -64,30 +64,16 @@ public final class EventScheduler {
                    EventMessageBus messageBus,
                    EventLogger logger,
                    EventSchedulerEngine eventSchedulerEngine,
-                   SchedulerExceptionHandler schedulerExceptionHandler,
-                   List<TestContextInitializer> testContextInitializers) {
+                   SchedulerExceptionHandler schedulerExceptionHandler) {
         this.name = eventSchedulerContext.getTestContext().getTestRunId();
-        this.checkResultsEnabled = eventSchedulerContext.isSchedulerEnabled();
         this.broadcaster = broadcaster;
+        this.eventSchedulerContext = eventSchedulerContext;
+        this.checkResultsEnabled = eventSchedulerContext.isSchedulerEnabled();
         this.scheduleEvents = scheduleEvents;
         this.logger = logger;
         this.eventSchedulerEngine = eventSchedulerEngine;
         this.schedulerExceptionHandler.set(schedulerExceptionHandler);
         this.messageBus = messageBus;
-
-        logger.info("init test context");
-        final AtomicReference<TestContext> testContext = new AtomicReference<>(eventSchedulerContext.getTestContext());
-        testContextInitializers.forEach(testContextInitializer -> {
-            logger.info("found TestContextInitializer: " + testContextInitializer.getClass().getName());
-            testContext.set(testContextInitializer.extendTestContext(testContext.get()));
-        });
-
-        List<EventContext> newEventContexts = eventSchedulerContext.getEventContexts().stream()
-                .map(eventContext -> eventContext.withTestContext(testContext.get()))
-                .collect(Collectors.toList());
-        EventSchedulerContext newEventSchedulerContext = eventSchedulerContext.withTestContext(testContext.get());
-        EventSchedulerContext newNewEventSchedulerContext = newEventSchedulerContext.withEventContexts(newEventContexts);
-        this.eventSchedulerContext = newNewEventSchedulerContext;
 
         this.waitForGoMessagesCount = (int) eventSchedulerContext.getEventContexts().stream()
             .filter(EventContext::isReadyForStartParticipant)

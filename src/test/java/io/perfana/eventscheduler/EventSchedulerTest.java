@@ -524,16 +524,19 @@ public class EventSchedulerTest
 
         TestContextInitializerFactory testContextInitializerFactory = Mockito.mock(TestContextInitializerFactory.class);
 
-        TestConfig testConfig = TestConfig.builder().build();
+        TestConfig testConfig = TestConfig.builder()
+                .testRunId("my-super-test-id-abc")
+                .build();
 
-        EventConfig eventConfig1 = EventConfig.builder()
+        EventConfig eventConfig = EventConfig.builder()
                 .testConfig(testConfig)
-                .name("myEvent1").build();
+                .name("myEvent1")
+                .build();
 
         ArgumentCaptor<EventContext> eventContextCaptor = ArgumentCaptor.forClass(EventContext.class);
 
         Mockito.when(eventFactory.create(any(), any(), any()))
-                .thenReturn(new EventAdapter<EventContext>(eventConfig1.toContext(), null, testLogger) {
+                .thenReturn(new EventAdapter<EventContext>(eventConfig.toContext(), null, testLogger) {
                     @Override
                     public void keepAlive() {
                         logger.info("keepAlive called");
@@ -553,10 +556,9 @@ public class EventSchedulerTest
         Mockito.when(provider.factoryByClassName(any()))
                 .thenReturn(Optional.of(eventFactory));
 
-
         EventSchedulerConfig eventSchedulerConfig = EventSchedulerConfig.builder()
                 .keepAliveIntervalInSeconds(1)
-                .eventConfig(eventConfig1)
+                .eventConfig(eventConfig)
                 .build();
 
         EventScheduler scheduler = new EventSchedulerBuilderInternal()
@@ -570,7 +572,7 @@ public class EventSchedulerTest
 
         assertEquals("test-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
         verify(eventFactory, times(1)).create(eventContextCaptor.capture(), any(), any());
-        //assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
+        assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
 
     }
 

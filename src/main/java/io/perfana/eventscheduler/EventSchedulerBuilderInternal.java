@@ -18,6 +18,7 @@ package io.perfana.eventscheduler;
 import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.api.config.EventContext;
 import io.perfana.eventscheduler.api.config.EventSchedulerContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 import io.perfana.eventscheduler.event.EventFactoryProvider;
 import io.perfana.eventscheduler.event.TestContextInitializerFactoryProvider;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -41,9 +43,9 @@ import java.util.stream.Collectors;
 @NotThreadSafe
 class EventSchedulerBuilderInternal {
 
-    private final Map<String, EventContext> eventContexts = new ConcurrentHashMap<>();
+    private final AtomicReference<EventSchedulerContext> eventSchedulerContext = new AtomicReference<>();
 
-    private EventSchedulerContext eventSchedulerContext;
+    private final Map<String, EventContext> eventContexts = new ConcurrentHashMap<>();
 
     private String customEventsText = "";
 
@@ -82,7 +84,7 @@ class EventSchedulerBuilderInternal {
     }
 
     public EventSchedulerBuilderInternal setEventSchedulerContext(EventSchedulerContext context) {
-        this.eventSchedulerContext = context;
+        this.eventSchedulerContext.set(context);
         return this;
     }
 
@@ -112,34 +114,21 @@ class EventSchedulerBuilderInternal {
             throw new EventSchedulerRuntimeException("eventSchedulerContext must be set, it is null.");
         }
 
-        // check if provider is already injected (for testing)
-        TestContextInitializerFactoryProvider testContextInitProvider = (testContextInitializerFactoryProvider == null)
-                ? TestContextInitializerFactoryProvider.createInstanceFromClasspath(classLoader)
-                : testContextInitializerFactoryProvider;
-
-        Map<String, EventContext> eventContextMap = eventSchedulerContext.getEventContexts().stream()
-                .collect(Collectors.toMap(e -> e.getClass().getName(), e -> e,
-                        (e1, e2) -> { logger.warn("found duplicate event context: " + e2.getEventFactory() + "-" + e2.getName()); return e1; }));
-
-        List<TestContextInitializerFactory> testContextInitializerFactories = testContextInitProvider.getTestContextInitializerFactories();
-
-        List<TestContextInitializer> testContextInitializers = testContextInitializerFactories.stream()
-                .map(factory -> factory.create(eventContextMap.get(factory.getEventContextClassname()), logger))
-                .collect(Collectors.toList());
+        initializeTestContext(classLoader);
 
         EventMessageBus messageBus = (this.eventMessageBus == null)
             ? new EventMessageBusSimple()
             : this.eventMessageBus;
 
-        eventSchedulerContext.getEventContexts().forEach(this::addEvent);
+        eventSchedulerContext.get().getEventContexts().forEach(this::addEvent);
 
         List<CustomEvent> customEvents =
                 generateCustomEventSchedule(customEventsText, logger, classLoader);
 
         // check if provider is already injected (for testing)
-        EventFactoryProvider provider = (eventFactoryProvider == null)
+        final EventFactoryProvider myEventFactoryProvider = (this.eventFactoryProvider == null)
                 ? EventFactoryProvider.createInstanceFromClasspath(classLoader)
-                : eventFactoryProvider;
+                : this.eventFactoryProvider;
 
         eventContexts.values().stream()
                 .filter(eventConfig -> !eventConfig.isEnabled())
@@ -147,7 +136,7 @@ class EventSchedulerBuilderInternal {
 
         List<Event> events = eventContexts.values().stream()
                 .filter(EventContext::isEnabled)
-                .map(context -> createEvent(provider, context, messageBus))
+                .map(context -> createEvent(myEventFactoryProvider, context, messageBus))
                 .collect(Collectors.toList());
 
         EventBroadcasterFactory broadcasterFactory = (eventBroadcasterFactory == null)
@@ -163,12 +152,42 @@ class EventSchedulerBuilderInternal {
         return new EventScheduler(
                 broadcaster,
                 customEvents,
-                eventSchedulerContext,
+                eventSchedulerContext.get(),
                 messageBus,
                 logger,
                 eventSchedulerEngine,
-                schedulerExceptionHandler,
-                testContextInitializers);
+                schedulerExceptionHandler);
+    }
+
+    private void initializeTestContext(ClassLoader classLoader) {
+        // check if provider is already injected (for testing)
+        TestContextInitializerFactoryProvider testContextInitProvider = (testContextInitializerFactoryProvider == null)
+                ? TestContextInitializerFactoryProvider.createInstanceFromClasspath(classLoader)
+                : testContextInitializerFactoryProvider;
+
+        Map<String, EventContext> eventContextMap = eventSchedulerContext.get().getEventContexts().stream()
+                .collect(Collectors.toMap(e -> e.getClass().getName(), e -> e,
+                        (e1, e2) -> { logger.warn("found duplicate event context: " + e2.getEventFactory() + "-" + e2.getName()); return e1; }));
+
+        List<TestContextInitializerFactory> testContextInitializerFactories = testContextInitProvider.getTestContextInitializerFactories();
+
+        List<TestContextInitializer> testContextInitializers = testContextInitializerFactories.stream()
+                .map(factory -> factory.create(eventContextMap.get(factory.getEventContextClassname()), logger))
+                .collect(Collectors.toList());
+
+        logger.info("init test context");
+        final AtomicReference<TestContext> testContext = new AtomicReference<>(eventSchedulerContext.get().getTestContext());
+        testContextInitializers.forEach(testContextInitializer -> {
+            logger.info("found TestContextInitializer: " + testContextInitializer.getClass().getName());
+            testContext.set(testContextInitializer.extendTestContext(testContext.get()));
+        });
+
+        List<EventContext> newEventContexts = eventSchedulerContext.get().getEventContexts().stream()
+                .map(eventContext -> eventContext.withTestContext(testContext.get()))
+                .collect(Collectors.toList());
+        EventSchedulerContext newEventSchedulerContext = eventSchedulerContext.get().withTestContext(testContext.get());
+        EventSchedulerContext newNewEventSchedulerContext = newEventSchedulerContext.withEventContexts(newEventContexts);
+        this.eventSchedulerContext.set(newNewEventSchedulerContext);
     }
 
     @SuppressWarnings("unchecked")
