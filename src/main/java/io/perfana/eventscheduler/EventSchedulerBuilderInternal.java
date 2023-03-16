@@ -130,11 +130,11 @@ class EventSchedulerBuilderInternal {
                 ? EventFactoryProvider.createInstanceFromClasspath(classLoader)
                 : this.eventFactoryProvider;
 
-        eventContexts.values().stream()
+        this.eventContexts.values().stream()
                 .filter(eventConfig -> !eventConfig.isEnabled())
                 .forEach(eventConfig -> logger.info("Event disabled: " + eventConfig.getName()));
 
-        List<Event> events = eventContexts.values().stream()
+        List<Event> events = this.eventContexts.values().stream()
                 .filter(EventContext::isEnabled)
                 .map(context -> createEvent(myEventFactoryProvider, context, messageBus))
                 .collect(Collectors.toList());
@@ -195,6 +195,8 @@ class EventSchedulerBuilderInternal {
         String factoryClassName = context.getEventFactory();
         String eventName = context.getName();
         EventLogger eventLogger = new EventLoggerWithName(eventName, removeFactoryPostfix(factoryClassName), logger);
+
+        logger.debug("create event: " + eventName + " with factory: " + factoryClassName + " and context: " + context);
 
         // create has raw type usage, so we have @SuppressWarnings("unchecked")
         return provider.factoryByClassName(factoryClassName)
