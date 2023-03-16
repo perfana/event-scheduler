@@ -110,7 +110,7 @@ class EventSchedulerBuilderInternal {
      */
     public EventScheduler build(ClassLoader classLoader) {
 
-        if (eventSchedulerContext == null) {
+        if (eventSchedulerContext.get() == null) {
             throw new EventSchedulerRuntimeException("eventSchedulerContext must be set, it is null.");
         }
 
@@ -136,7 +136,7 @@ class EventSchedulerBuilderInternal {
 
         List<Event> events = this.eventContexts.values().stream()
                 .filter(EventContext::isEnabled)
-                .map(context -> createEvent(myEventFactoryProvider, context, messageBus))
+                .map(context -> createEvent(myEventFactoryProvider, context, eventSchedulerContext.get().getTestContext(), messageBus))
                 .collect(Collectors.toList());
 
         EventBroadcasterFactory broadcasterFactory = (eventBroadcasterFactory == null)
@@ -182,16 +182,11 @@ class EventSchedulerBuilderInternal {
             testContext.set(testContextInitializer.extendTestContext(testContext.get()));
         });
 
-        List<EventContext> newEventContexts = eventSchedulerContext.get().getEventContexts().stream()
-                .map(eventContext -> eventContext.withTestContext(testContext.get()))
-                .collect(Collectors.toList());
-        EventSchedulerContext newEventSchedulerContext = eventSchedulerContext.get().withTestContext(testContext.get());
-        EventSchedulerContext newNewEventSchedulerContext = newEventSchedulerContext.withEventContexts(newEventContexts);
-        this.eventSchedulerContext.set(newNewEventSchedulerContext);
+        this.eventSchedulerContext.set(eventSchedulerContext.get().withTestContext(testContext.get()));
     }
 
     @SuppressWarnings("unchecked")
-    private Event createEvent(EventFactoryProvider provider, EventContext context, EventMessageBus messageBus) {
+    private Event createEvent(EventFactoryProvider provider, EventContext context, TestContext testContext, EventMessageBus messageBus) {
         String factoryClassName = context.getEventFactory();
         String eventName = context.getName();
         EventLogger eventLogger = new EventLoggerWithName(eventName, removeFactoryPostfix(factoryClassName), logger);
@@ -201,7 +196,7 @@ class EventSchedulerBuilderInternal {
         // create has raw type usage, so we have @SuppressWarnings("unchecked")
         return provider.factoryByClassName(factoryClassName)
                 .orElseThrow(() -> new RuntimeException(factoryClassName + " not registered via META-INF/services"))
-                .create(context, messageBus, eventLogger);
+                .create(context, testContext, messageBus, eventLogger);
     }
 
     private String removeFactoryPostfix(String factoryClassName) {
@@ -284,7 +279,6 @@ class EventSchedulerBuilderInternal {
      * @return this
      */
     private EventSchedulerBuilderInternal addEvent(EventContext eventContext) {
-        if (eventContext.getTestContext() == null) { throw new EventSchedulerRuntimeException("eventConfig without test config! " + eventContext); }
         EventContext existingEventContext = eventContexts.putIfAbsent(eventContext.getName(), eventContext);
         if (existingEventContext != null) {
             throw new EventSchedulerRuntimeException("Event name is not unique: " + eventContext.getName());

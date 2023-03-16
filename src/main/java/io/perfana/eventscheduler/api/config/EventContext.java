@@ -39,8 +39,6 @@ public class EventContext {
     String eventFactory;
     boolean enabled;
     String scheduleScript;
-    @With
-    TestContext testContext;
     boolean readyForStartParticipant;
     boolean continueOnKeepAliveParticipant;
 
@@ -49,7 +47,6 @@ public class EventContext {
         this.eventFactory = eventFactory;
         this.enabled = context.enabled;
         this.scheduleScript = context.scheduleScript;
-        this.testContext = context.testContext;
         this.readyForStartParticipant = context.readyForStartParticipant;
         this.continueOnKeepAliveParticipant = context.continueOnKeepAliveParticipant;
     }

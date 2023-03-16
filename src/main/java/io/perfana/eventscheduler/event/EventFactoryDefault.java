@@ -19,6 +19,7 @@ import io.perfana.eventscheduler.api.Event;
 import io.perfana.eventscheduler.api.EventFactory;
 import io.perfana.eventscheduler.api.EventLogger;
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 public class EventFactoryDefault implements EventFactory<EventContext>{
@@ -34,8 +35,8 @@ public class EventFactoryDefault implements EventFactory<EventContext>{
     }
 
     @Override
-    public Event create(EventContext context, EventMessageBus messageBus, EventLogger logger) {
-        return new EventDefault(context, messageBus, logger);
+    public Event create(EventContext context, TestContext testContext, EventMessageBus messageBus, EventLogger logger) {
+        return new EventDefault(context, testContext, messageBus, logger);
     }
 
     @Override

@@ -16,6 +16,7 @@
 package io.perfana.eventscheduler.api;
 
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 import java.util.Arrays;
@@ -32,18 +33,15 @@ import java.util.TreeSet;
 public abstract class EventAdapter<T extends EventContext> implements Event {
 
     protected final T eventContext;
+    protected final TestContext testContext;
     protected final EventLogger logger;
     protected final EventMessageBus eventMessageBus;
 
-    public EventAdapter(T context, EventMessageBus messageBus, EventLogger logger) {
+    public EventAdapter(T context, TestContext testContext, EventMessageBus messageBus, EventLogger logger) {
         this.eventContext = context;
+        this.testContext = testContext;
         this.logger = logger;
         this.eventMessageBus = messageBus;
-    }
-
-    @Deprecated
-    public EventAdapter(T context, EventLogger logger) {
-        this(context, null, logger);
     }
 
     @Override

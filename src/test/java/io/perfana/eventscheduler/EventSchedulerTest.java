@@ -56,7 +56,7 @@ public class EventSchedulerTest
         @SuppressWarnings("unchecked")
         EventFactory<EventContext> eventFactory = Mockito.mock(EventFactory.class);
 
-        Mockito.when(eventFactory.create(any(), any(), any()))
+        Mockito.when(eventFactory.create(any(), any(), any(), any()))
             .thenReturn(event);
         Mockito.when(provider.factoryByClassName(any()))
             .thenReturn(Optional.of(eventFactory));
@@ -89,7 +89,8 @@ public class EventSchedulerTest
             .build();
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
-            .eventConfig(EventConfig.builder().name("myEvent1").testConfig(testConfig).build())
+            .testConfig(testConfig)
+            .eventConfig(EventConfig.builder().name("myEvent1").build())
             .eventConfig(EventConfig.builder().name("myEvent2").build())
             .eventConfig(EventConfig.builder().name("myEvent3").build())
             .build();
@@ -139,8 +140,8 @@ public class EventSchedulerTest
 
         public AtomicInteger startTestCounter = new AtomicInteger(0);
 
-        public EventWithMessageBus(EventContext eventContext, EventLogger logger, EventMessageBus eventMessageBus) {
-            super(eventContext, eventMessageBus, logger);
+        public EventWithMessageBus(EventContext eventContext, TestContext testContext, EventLogger logger, EventMessageBus eventMessageBus) {
+            super(eventContext, testContext, eventMessageBus, logger);
             eventMessageBus.addReceiver(message -> System.out.println(eventContext.getName() + " received " + message));
         }
 
@@ -182,14 +183,15 @@ public class EventSchedulerTest
         EventConfig eventConfig1 = EventConfig.builder()
             .name("myEvent1").build();
         EventConfig eventConfig2 = EventConfig.builder()
-            .name("myEvent2").testConfig(testConfig).build();
+            .name("myEvent2").build();
 
         EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
 
-        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testLogger, eventMessageBus);
-        EventWithMessageBus event2 = new EventWithMessageBus(eventConfig2.toContext(), testLogger, eventMessageBus);
+        TestContext testContext = testConfig.toContext();
+        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testContext, testLogger, eventMessageBus);
+        EventWithMessageBus event2 = new EventWithMessageBus(eventConfig2.toContext(), testContext, testLogger, eventMessageBus);
 
-        Mockito.when(eventFactory.create(any(), any(), any()))
+        Mockito.when(eventFactory.create(any(), any(), any(), any()))
             .thenReturn(event1)
             .thenReturn(event2);
         Mockito.when(provider.factoryByClassName(any()))
@@ -225,11 +227,11 @@ public class EventSchedulerTest
         EventFactory<EventContext> eventFactory = Mockito.mock(EventFactory.class);
 
         TestConfig testConfig = TestConfig.builder().build();
+        TestContext testContext = testConfig.toContext();
 
         EventConfig eventConfig1 = EventConfig.builder()
             .name("myEvent1")
             .readyForStartParticipant(true)
-            .testConfig(testConfig)
             .build();
         EventConfig eventConfig2 = EventConfig.builder()
             .name("myEvent2")
@@ -237,10 +239,10 @@ public class EventSchedulerTest
             .build();
 
         EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
-        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testLogger, eventMessageBus);
-        EventWithMessageBus event2 = new EventWithMessageBus(eventConfig2.toContext(), testLogger, eventMessageBus);
+        EventWithMessageBus event1 = new EventWithMessageBus(eventConfig1.toContext(), testContext, testLogger, eventMessageBus);
+        EventWithMessageBus event2 = new EventWithMessageBus(eventConfig2.toContext(), testContext, testLogger, eventMessageBus);
 
-        Mockito.when(eventFactory.create(any(), any(), any()))
+        Mockito.when(eventFactory.create(any(), any(), any(), any()))
             .thenReturn(event1)
             .thenReturn(event2);
         Mockito.when(provider.factoryByClassName(any()))
@@ -310,7 +312,8 @@ public class EventSchedulerTest
 
         String eventFactory = "io.perfana.eventscheduler.event.EventFactoryDefault";
         EventSchedulerConfig config = EventSchedulerConfig.builder()
-            .eventConfig(EventConfig.builder().name("eventEnabled1").eventFactory(eventFactory).testConfig(testConfig).enabled(true).build())
+            .testConfig(testConfig)
+            .eventConfig(EventConfig.builder().name("eventEnabled1").eventFactory(eventFactory).enabled(true).build())
             .eventConfig(EventConfig.builder().name("eventEnabled2").eventFactory(eventFactory).enabled(true).build())
             .eventConfig(EventConfig.builder().name("eventDisabled").eventFactory(eventFactory).enabled(false).build())
             .build();
@@ -335,7 +338,6 @@ public class EventSchedulerTest
             .name("myEvent")
             .enabled(true)
             .eventFactory("io.perfana.eventscheduler.event.EventFactoryDefault")
-            .testConfig(TestConfig.builder().build())
             .build();
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
@@ -359,7 +361,6 @@ public class EventSchedulerTest
             .name("myEvent")
             .enabled(true)
             .eventFactory("io.perfana.eventscheduler.event.EventFactoryDefault")
-            .testConfig(TestConfig.builder().build())
             .build();
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
@@ -396,8 +397,8 @@ public class EventSchedulerTest
 
     static class KillSwitchExceptionEvent extends EventAdapter<EventContext> {
 
-        public KillSwitchExceptionEvent(EventContext eventContext, EventLogger logger, EventMessageBus eventMessageBus) {
-            super(eventContext, eventMessageBus, logger);
+        public KillSwitchExceptionEvent(EventContext eventContext, TestContext testContext, EventLogger logger, EventMessageBus eventMessageBus) {
+            super(eventContext, testContext, eventMessageBus, logger);
         }
 
         @Override
@@ -422,13 +423,12 @@ public class EventSchedulerTest
         EventConfig eventConfig1 = EventConfig.builder()
             .name("myEvent1")
             .readyForStartParticipant(false)
-            .testConfig(testConfig)
             .build();
 
         EventMessageBusSimple eventMessageBus = new EventMessageBusSimple();
-        KillSwitchExceptionEvent event1 = new KillSwitchExceptionEvent(eventConfig1.toContext(), testLogger, eventMessageBus);
+        KillSwitchExceptionEvent event1 = new KillSwitchExceptionEvent(eventConfig1.toContext(), testConfig.toContext(), testLogger, eventMessageBus);
 
-        Mockito.when(eventFactory.create(any(), any(), any()))
+        Mockito.when(eventFactory.create(any(), any(), any(), any()))
             .thenReturn(event1);
         Mockito.when(provider.factoryByClassName(any()))
             .thenReturn(Optional.of(eventFactory));
@@ -529,14 +529,13 @@ public class EventSchedulerTest
                 .build();
 
         EventConfig eventConfig = EventConfig.builder()
-                .testConfig(testConfig)
                 .name("myEvent1")
                 .build();
 
         ArgumentCaptor<EventContext> eventContextCaptor = ArgumentCaptor.forClass(EventContext.class);
 
-        Mockito.when(eventFactory.create(any(), any(), any()))
-                .thenReturn(new EventAdapter<EventContext>(eventConfig.toContext(), null, testLogger) {
+        Mockito.when(eventFactory.create(any(), any(), any(), any()))
+                .thenReturn(new EventAdapter<EventContext>(eventConfig.toContext(), testConfig.toContext(), null, testLogger) {
                     @Override
                     public void keepAlive() {
                         logger.info("keepAlive called");
@@ -571,8 +570,8 @@ public class EventSchedulerTest
         scheduler.startSession();
 
         assertEquals("test-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
-        verify(eventFactory, times(1)).create(eventContextCaptor.capture(), any(), any());
-        assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
+        verify(eventFactory, times(1)).create(eventContextCaptor.capture(), any(), any(), any());
+        //assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
 
     }
 

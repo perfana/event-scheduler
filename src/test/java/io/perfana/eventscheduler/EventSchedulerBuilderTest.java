@@ -78,7 +78,6 @@ public class EventSchedulerBuilderTest {
             .name("Event1")
             .eventFactory(factoryClassName)
             .enabled(true)
-            .testConfig(testConfig)
             .build();
 
         EventConfig eventConfig2 = EventConfig.builder()
@@ -89,6 +88,7 @@ public class EventSchedulerBuilderTest {
 
         EventSchedulerBuilderInternal builder = new EventSchedulerBuilderInternal();
         EventSchedulerConfig config = EventSchedulerConfig.builder()
+            .testConfig(testConfig)
             .eventConfig(eventConfig1)
             .eventConfig(eventConfig2)
             .build();
@@ -101,12 +101,14 @@ public class EventSchedulerBuilderTest {
     @Test(expected = EventSchedulerRuntimeException.class)
     public void testUniqueEventNameCheck() {
         EventSchedulerConfig config = EventSchedulerConfig.builder()
+            .testConfig(TestConfig.builder().build())
             .eventConfig(EventConfig.builder().name("one").build())
             .eventConfig(EventConfig.builder().name("one").build())
             .build();
 
-        EventSchedulerBuilderInternal builder = new EventSchedulerBuilderInternal();
-        builder.setEventSchedulerContext(config.toContext(EventLoggerStdOut.INSTANCE));
+        EventScheduler eventScheduler = new EventSchedulerBuilderInternal()
+            .setEventSchedulerContext(config.toContext(EventLoggerStdOut.INSTANCE))
+                .build();
     }
 
 }

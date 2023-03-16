@@ -20,22 +20,23 @@ import io.perfana.eventscheduler.api.EventAdapter;
 import io.perfana.eventscheduler.api.EventCheck;
 import io.perfana.eventscheduler.api.EventLogger;
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 public class EventDefault extends EventAdapter<EventContext> {
 
-    EventDefault(EventContext context, EventMessageBus messageBus, EventLogger logger) {
-        super(context, messageBus, logger);
+    EventDefault(EventContext context, TestContext testContext, EventMessageBus messageBus, EventLogger logger) {
+        super(context, testContext, messageBus, logger);
     }
 
     @Override
     public void beforeTest() {
-        logger.info("Before test: " + eventContext.getTestContext().getTestRunId());
+        logger.info("Before test: " + testContext.getTestRunId());
     }
 
     @Override
     public void startTest() {
-        logger.info("Start test: " + eventContext.getTestContext().getTestRunId());
+        logger.info("Start test: " + testContext.getTestRunId());
     }
 
     @Override
@@ -45,6 +46,6 @@ public class EventDefault extends EventAdapter<EventContext> {
 
     @Override
     public void customEvent(CustomEvent scheduleEvent) {
-
+        logger.debug("Custom event not implemented: " + scheduleEvent);
     }
 }

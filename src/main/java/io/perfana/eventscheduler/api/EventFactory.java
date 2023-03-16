@@ -16,11 +16,12 @@
 package io.perfana.eventscheduler.api;
 
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 /**
  * Create an EventGenerator based on the given event config.
  */
 public interface EventFactory<T extends EventContext> {
-    Event create(T context, EventMessageBus messageBus, EventLogger logger);
+    Event create(T context, TestContext testContext, EventMessageBus messageBus, EventLogger logger);
 }

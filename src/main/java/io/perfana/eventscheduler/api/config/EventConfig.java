@@ -45,27 +45,21 @@ public class EventConfig {
     @Builder.Default
     private String scheduleScript = null;
     @Builder.Default
-    private TestConfig testConfig = null;
-    @Builder.Default
     private boolean readyForStartParticipant = false;
 
     // if all vote stop (via keep alive calls with StopTestRunException): then stop the test run
     @Builder.Default
     private boolean continueOnKeepAliveParticipant = false;
 
-    public EventContext toContext(TestContext overrideTestContext) {
+    public EventContext toContext() {
         return EventContext.builder()
                 .name(name)
                 .eventFactory(eventFactory)
                 .enabled(enabled)
                 .scheduleScript(scheduleScript)
-                .testContext(overrideTestContext)
                 .readyForStartParticipant(readyForStartParticipant)
                 .continueOnKeepAliveParticipant(continueOnKeepAliveParticipant)
             .build();
     }
 
-    public EventContext toContext() {
-        return toContext(testConfig == null ? null : testConfig.toContext());
-    }
 }

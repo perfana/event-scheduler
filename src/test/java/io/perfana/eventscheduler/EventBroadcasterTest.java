@@ -18,6 +18,7 @@ package io.perfana.eventscheduler;
 import io.perfana.eventscheduler.api.*;
 import io.perfana.eventscheduler.api.config.EventConfig;
 import io.perfana.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.TestConfig;
 import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import io.perfana.eventscheduler.exception.handler.AbortSchedulerException;
 import io.perfana.eventscheduler.exception.handler.KillSwitchException;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.perfana.eventscheduler.log.EventLoggerStdOut.INSTANCE_DEBUG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -104,7 +106,7 @@ public class EventBroadcasterTest {
 
 
         MyTestEventThatCanFail(AtomicInteger counter, int expectValue, int newValue, EventLogger eventLogger) {
-            super(eventContext, eventLogger);
+            super(eventContext, TestConfig.builder().build().toContext(), new EventMessageBusSimple(), eventLogger);
             this.counter = counter;
             this.expectValue= expectValue;
             this.newValue = newValue;
@@ -303,7 +305,7 @@ public class EventBroadcasterTest {
     private static class MySleepyEvent extends EventAdapter<EventContext> {
 
         public MySleepyEvent(EventContext context, EventLogger eventLogger) {
-            super(context, eventLogger);
+            super(context, TestConfig.builder().build().toContext(), new EventMessageBusSimple(), eventLogger);
         }
 
         @Override
@@ -326,7 +328,7 @@ public class EventBroadcasterTest {
     private static class MyKillSwitchEvent extends EventAdapter<EventContext> {
 
         public MyKillSwitchEvent(EventContext eventContext) {
-            super(eventContext, EventLoggerStdOut.INSTANCE_DEBUG);
+            super(eventContext, TestConfig.builder().build().toContext(), new EventMessageBusSimple(), INSTANCE_DEBUG);
         }
 
         @Override
@@ -345,7 +347,7 @@ public class EventBroadcasterTest {
     private static class MyStopTestRunEvent extends EventAdapter<EventContext> {
 
         public MyStopTestRunEvent(EventContext eventContext) {
-            super(eventContext, EventLoggerStdOut.INSTANCE_DEBUG);
+            super(eventContext, TestConfig.builder().build().toContext(), new EventMessageBusSimple(), INSTANCE_DEBUG);
         }
 
         @Override
@@ -361,7 +363,7 @@ public class EventBroadcasterTest {
     private static class MyErrorEvent extends EventAdapter<EventContext> {
 
         public MyErrorEvent(EventContext context, EventLogger eventLogger) {
-            super(context, eventLogger);
+            super(context, TestConfig.builder().build().toContext(), new EventMessageBusSimple(), eventLogger);
         }
 
         @Override
