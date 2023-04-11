@@ -198,6 +198,7 @@ public class EventSchedulerTest
             .thenReturn(Optional.of(eventFactory));
 
         EventSchedulerConfig eventSchedulerConfig = EventSchedulerConfig.builder()
+            .testConfig(testConfig)
             .keepAliveIntervalInSeconds(1)
             .eventConfig(eventConfig1)
             .eventConfig(eventConfig2)
@@ -252,6 +253,7 @@ public class EventSchedulerTest
             .keepAliveIntervalInSeconds(1)
             .eventConfig(eventConfig1)
             .eventConfig(eventConfig2)
+            .testConfig(TestConfig.builder().build())
             .build();
 
         EventScheduler scheduler = new EventSchedulerBuilderInternal()
@@ -341,6 +343,7 @@ public class EventSchedulerTest
             .build();
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
+            .testConfig(TestConfig.builder().build())
             .eventConfig(eventConfig)
             .build();
 
@@ -364,6 +367,7 @@ public class EventSchedulerTest
             .build();
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
+            .testConfig(TestConfig.builder().build())
             .eventConfig(eventConfig)
             .build();
 
@@ -434,6 +438,7 @@ public class EventSchedulerTest
             .thenReturn(Optional.of(eventFactory));
 
         EventSchedulerConfig config = EventSchedulerConfig.builder()
+            .testConfig(testConfig)
             .keepAliveIntervalInSeconds(1)
             .eventConfig(eventConfig1)
             .build();
@@ -556,6 +561,7 @@ public class EventSchedulerTest
                 .thenReturn(Optional.of(eventFactory));
 
         EventSchedulerConfig eventSchedulerConfig = EventSchedulerConfig.builder()
+                .testConfig(testConfig)
                 .keepAliveIntervalInSeconds(1)
                 .eventConfig(eventConfig)
                 .build();

@@ -16,6 +16,7 @@
 package io.perfana.eventscheduler.api.config;
 
 import io.perfana.eventscheduler.api.EventLogger;
+import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import lombok.*;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -46,9 +47,13 @@ public class EventSchedulerConfig {
     @Singular
     private List<EventConfig> eventConfigs;
     @Builder.Default
-    private TestConfig testConfig = TestConfig.builder().build();
+    private TestConfig testConfig = null;
 
     public EventSchedulerContext toContext(EventLogger logger) {
+
+        if (testConfig == null) {
+            throw new EventSchedulerRuntimeException("no testConfig found in eventSchedulerConfig");
+        }
 
         // inject top level config in all event contexts
         List<EventContext> eventContexts = eventConfigs.stream()
