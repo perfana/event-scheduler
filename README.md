@@ -37,7 +37,7 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
 <plugin>
     <groupId>io.perfana</groupId>
     <artifactId>event-scheduler-maven-plugin</artifactId>
-    <version>1.1.0</version>
+    <version>3.0.0</version>
     <configuration>
         <eventSchedulerConfig>
             <debugEnabled>false</debugEnabled>
@@ -77,7 +77,7 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
         <dependency>
             <groupId>io.perfana</groupId>
             <artifactId>test-events-hello-world</artifactId>
-            <version>1.1.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -138,15 +138,11 @@ EventScheduler scheduler = EventSchedulerBuilder.of(eventSchedulerConfig, eventL
 Note that a lot of properties of the builders have decent defaults 
 and do not need to be called, such as the retry and keep alive properties.
 
-The `TestConfig` describes high level properties of a test run. 
+The `TestConfig` describes the properties of a test run. 
+A `TestConfig` is part of the `EventSchedulerConfig`
 
-A `TestConfig` can be set at the `EventSchedulerConfig` and at the `EventConfig`. When
-set at the `EventSchedulerConfig`, no `EventConfig` are allowed to have an `TestConfig`.
-If one `EventConfig` has a `TestConfig`, that one will be used as top level `TestConfig`.
-It is not allowed to have multiple `EventConfig`s with a `TestConfig`.
-
-When adding events, each event can have its own values. That makes it possible
-to configure multiple Wiremock event that use different Wiremock urls for instance.
+Each `event` can have its own values. For example,
+create multiple Wiremock events that use different Wiremock urls.
  
 Then call these methods at the appropriate time:
 
