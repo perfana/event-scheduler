@@ -3,6 +3,9 @@ name: Release to maven central
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - *
 
 jobs:
   build:
