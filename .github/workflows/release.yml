@@ -30,12 +30,7 @@ jobs:
         with:
           java-version: 11
           distribution: 'corretto'
-      - name: Create GHA release
-        uses: ncipollo/release-action@v1
-        if: contains(env.TAG_NAME, 'SNAPSHOT') != true
-        with:
-          artifacts: "build/libs/*.jar"
-          bodyFile: RELEASE.md
+
       - name: Publish with Gradle
         if: contains(env.TAG_NAME, 'SNAPSHOT') == true
         env:
@@ -44,6 +39,7 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
         run: ./gradlew --info clean publishToSonatype
+
       - name: Close and release repository with Gradle
         if: contains(env.TAG_NAME, 'SNAPSHOT') != true
         env:
@@ -52,3 +48,10 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
         run: ./gradlew --info publishToSonatype closeAndReleaseSonatypeStagingRepository
+
+      - name: Create GHA release
+        uses: ncipollo/release-action@v1
+        if: contains(env.TAG_NAME, 'SNAPSHOT') != true
+        with:
+          artifacts: "build/libs/*.jar"
+          bodyFile: RELEASE.md
