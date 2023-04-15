@@ -30,6 +30,12 @@ jobs:
         with:
           java-version: 11
           distribution: 'corretto'
+      - name: Create GHA release
+        uses: ncipollo/release-action@v1
+        if: contains(env.TAG_NAME, 'SNAPSHOT') != true
+        with:
+          artifacts: "build/libs/*"
+          bodyFile: RELEASE.md
       - name: Publish with Gradle
         if: contains(env.TAG_NAME, 'SNAPSHOT') == true
         env:
