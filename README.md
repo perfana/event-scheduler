@@ -86,6 +86,17 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
 Note that the `<eventConfig implementation="...">` implementation field is mandatory, it defines the `EventConfig` subtype to use.
 The name of an event, here `HelloEvent1`, should a unique event name. The event name is used in the logging.
 
+### EventConfig properties
+
+Each event config has these basic properties:
+
+* `name` - the name of the event, should be unique and descriptive
+* `enabled` - if `false` the event is not activated 
+* `eventFactory` - the event factory to use for dynamic events, see below
+* `scheduleScript` - the schedule script to use, see below
+* `readyForStartParticipant` - if `true` the event is a participant in the ready-for-start phase
+* `continueOnKeepAliveParticipant` - if `true` the event is a participant in the continue-on-keep-alive phase
+
 ## usage via code
 
 Create an `EventScheduler` using the builder with an `EventSchedulerConfig`:
