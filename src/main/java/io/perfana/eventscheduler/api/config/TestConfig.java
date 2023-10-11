@@ -42,7 +42,7 @@ public class TestConfig {
     @Builder.Default
     private String dashboardName = "ANONYMOUS_DASHBOARD";
     @Builder.Default
-    private String testRunId = "ANONYMOUS_TEST_ID";
+    private String testRunId = "GENERATED_TEST_ID-" + System.currentTimeMillis();
     @Builder.Default
     private String buildResultsUrl = null;
     @Builder.Default
