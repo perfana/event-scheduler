@@ -32,7 +32,7 @@ public class EventSchedulerContext {
     @Builder.Default
     boolean failOnError = true;
     @Builder.Default
-    boolean continueOnEventCheckFailure = true;
+    boolean continueOnEventCheckFailure = false;
     @Builder.Default
     Duration keepAliveInterval = Duration.ofSeconds(30);
     @Builder.Default
