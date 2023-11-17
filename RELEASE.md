@@ -4,5 +4,7 @@
 * simplified TestContext usage: only available at `EventSchedulerContext` and not at `Event` level
 * from java 8 to java 11
 
-## v4.0.1 - TBD
+## v4.0.1 - november 2023
 * default value of continueOnEventCheckFailure is now false
+* improved documentation
+* unique value of default test run ids
