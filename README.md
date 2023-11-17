@@ -1,8 +1,9 @@
 # event-scheduler
 
-Add this java library to your project to generate timed events.
+Add this Java library to your project to generate timed events.
 
-For instance during a Perfana performance test to dynamically increase response times over time.
+For instance, during a Perfana performance test you can dynamically increase response times at certain
+times after the start of the run.
 
 To be used in combination with plugins:
 
@@ -14,13 +15,13 @@ To be used in combination with plugins:
 * [test-events-springboot](https://github.com/perfana/test-events-springboot) - connect to spring boot app, e.g. fetch values of settings via actuator
 * [test-events-test-run-config-command](https://github.com/perfana/test-events-test-run-config-command) - send test run config to Perfana, e.g. k8s settings or current git commit hash
 
-Custom plugins can be build as described below. Tip: base a new plugin on the test-events-hello-world example.
+Custom plugins can be built as described below. Tip: base a new plugin on the test-events-hello-world example.
 
 ## usage via Maven
 
 The following event-scheduler Maven plugins can be used, these are ready-to-go:
 
-* [event-scheduler-maven-plugin](https://github.com/perfana/event-scheduler-maven-plugin) runs plain event-scheduler via Maven
+* [event-scheduler-maven-plugin](https://github.com/perfana/event-scheduler-maven-plugin) runs plain event-scheduler via Maven, useful in combination with the `test-events-command-runner` plugin
 * [events-gatling-maven-plugin](https://github.com/perfana/events-gatling-maven-plugin) runs Gatling load test via Maven with event-scheduler build-in
 * [events-jmeter-maven-plugin](https://github.com/perfana/events-jmeter-maven-plugin)  runs jMeter load test via Maven with event-scheduler build-in
 
@@ -43,7 +44,7 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
             <debugEnabled>false</debugEnabled>
             <schedulerEnabled>true</schedulerEnabled>
             <failOnError>true</failOnError>
-            <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
+            <continueOnEventCheckFailure>false</continueOnEventCheckFailure>
             <testConfig>
                 <systemUnderTest>my-application</systemUnderTest>
                 <version>1.2.3</version>
@@ -86,7 +87,20 @@ For example, using the `test-events-hello-world` event-scheduler plugin (yes, a 
 Note that the `<eventConfig implementation="...">` implementation field is mandatory, it defines the `EventConfig` subtype to use.
 The name of an event, here `HelloEvent1`, should a unique event name. The event name is used in the logging.
 
-### EventConfig properties
+### eventSchedulerConfig properties
+
+The `eventSchedulerConfig` element has these properties:
+
+* `schedulerEnabled` - (default: `true`) if `false` the event scheduler is not activated
+* `debugEnabled` - (default: `false`) if `true` debug logging is enabled
+* `failOnError` - (default: `false`) if `true` the build will fail if an event plugin runs into a failure (Exception)
+* `continueOnEventCheckFailure` - (default: `false`) if `true` the build will continue the checks after a run (e.g. the Perfana check results) are unsuccessful (e.g. an SLI has a value that is too high)
+* `keepAliveIntervalInSeconds` - (default: 30) the interval in seconds between keep-alive calls
+* `testConfig` - the test config to use, see below
+* `eventConfigs` - the event configs to use, see below
+* `scheduleScript` - the schedule script to use, see below
+
+### eventConfig properties
 
 Each event config has these basic properties:
 
@@ -262,7 +276,7 @@ an eventSchedule generated instead of an explicit list of timestamps and events.
 ```
 
 The class defined by `@generatorFactoryClass` should be available on the classpath.
-The `foo=bar` is an example of properties for the event generator.
+The `foo=bar`and `@events-file=...` are examples of properties for the event generator.
 You can use multiple lines for multiple properties.
 
 Properties that start with @-sign are so-called "meta" properties and
