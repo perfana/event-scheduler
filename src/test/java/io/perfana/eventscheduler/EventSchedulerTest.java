@@ -555,7 +555,7 @@ public class EventSchedulerTest
                 .thenReturn(Optional.of(testContextInitializerFactory));
 
         Mockito.when(testContextInitializerFactory.create(any(), any()))
-                .thenReturn(testContext -> testContext.withTestRunId("test-123"));
+                .thenReturn(testContext -> testContext.withTestRunId("override-test-run-id-123"));
 
         Mockito.when(provider.factoryByClassName(any()))
                 .thenReturn(Optional.of(eventFactory));
@@ -575,7 +575,7 @@ public class EventSchedulerTest
 
         scheduler.startSession();
 
-        assertEquals("test-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
+        assertEquals("override-test-run-id-123", scheduler.getEventSchedulerContext().getTestContext().getTestRunId());
         verify(eventFactory, times(1)).create(eventContextCaptor.capture(), any(), any(), any());
         //assertEquals("test-123", eventContextCaptor.getValue().getTestContext().getTestRunId());
 

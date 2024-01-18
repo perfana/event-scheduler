@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Peter Paul Bakker, Perfana
+ * Copyright (C) 2023 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,17 +120,7 @@ class EventSchedulerBuilderInternal {
             ? new EventMessageBusSimple()
             : this.eventMessageBus;
 
-        List<EventContext> allEventContexts = eventSchedulerContext.get().getEventContexts();
-
-        // only add the enabled events
-        allEventContexts.stream()
-                .filter(EventContext::isEnabled)
-                .forEach(this::addEvent);
-
-        // report disabled events
-        allEventContexts.stream()
-                .filter(eventConfig -> !eventConfig.isEnabled())
-                .forEach(eventConfig -> logger.info("Event disabled: " + eventConfig.getName()));
+        eventSchedulerContext.get().getEventContexts().forEach(this::addEvent);
 
         List<CustomEvent> customEvents =
                 generateCustomEventSchedule(customEventsText, logger, classLoader);
@@ -140,8 +130,12 @@ class EventSchedulerBuilderInternal {
                 ? EventFactoryProvider.createInstanceFromClasspath(classLoader)
                 : this.eventFactoryProvider;
 
+        this.eventContexts.values().stream()
+                .filter(eventConfig -> !eventConfig.isEnabled())
+                .forEach(eventConfig -> logger.info("Event disabled: " + eventConfig.getName()));
 
         List<Event> events = this.eventContexts.values().stream()
+                .filter(EventContext::isEnabled)
                 .map(context -> createEvent(myEventFactoryProvider, context, eventSchedulerContext.get().getTestContext(), messageBus))
                 .collect(Collectors.toList());
 
@@ -171,10 +165,8 @@ class EventSchedulerBuilderInternal {
                 ? TestContextInitializerFactoryProvider.createInstanceFromClasspath(classLoader)
                 : testContextInitializerFactoryProvider;
 
-
         Map<String, EventContext> eventContextMap = eventSchedulerContext.get().getEventContexts().stream()
-                .filter(EventContext::isEnabled) // only initialize test contexts for enabled events
-                .collect(Collectors.toMap(EventContext::getName, e -> e,
+                .collect(Collectors.toMap(e -> e.getClass().getName(), e -> e,
                         (e1, e2) -> { logger.warn("found duplicate event context: " + e2.getEventFactory() + "-" + e2.getName()); return e1; }));
 
         List<TestContextInitializerFactory> testContextInitializerFactories = testContextInitProvider.getTestContextInitializerFactories();
