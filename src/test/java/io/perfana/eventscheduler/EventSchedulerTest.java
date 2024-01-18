@@ -554,6 +554,9 @@ public class EventSchedulerTest
         Mockito.when(testContextInitializerFactoryProvider.factoryByClassName(any()))
                 .thenReturn(Optional.of(testContextInitializerFactory));
 
+        Mockito.when(testContextInitializerFactory.getEventContextClassname())
+                .thenReturn("io.perfana.eventscheduler.api.config.EventContext");
+
         Mockito.when(testContextInitializerFactory.create(any(), any()))
                 .thenReturn(testContext -> testContext.withTestRunId("override-test-run-id-123"));
 

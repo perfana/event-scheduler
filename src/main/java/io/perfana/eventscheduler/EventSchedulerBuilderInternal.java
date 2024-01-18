@@ -165,22 +165,34 @@ class EventSchedulerBuilderInternal {
                 ? TestContextInitializerFactoryProvider.createInstanceFromClasspath(classLoader)
                 : testContextInitializerFactoryProvider;
 
-        Map<String, EventContext> eventContextMap = eventSchedulerContext.get().getEventContexts().stream()
-                .collect(Collectors.toMap(e -> e.getClass().getName(), e -> e,
-                        (e1, e2) -> { logger.warn("found duplicate event context: " + e2.getEventFactory() + "-" + e2.getName()); return e1; }));
+        List<EventContext> allEventContexts = eventSchedulerContext.get().getEventContexts();
 
         List<TestContextInitializerFactory> testContextInitializerFactories = testContextInitProvider.getTestContextInitializerFactories();
 
-        List<TestContextInitializer> testContextInitializers = testContextInitializerFactories.stream()
-                .map(factory -> factory.create(eventContextMap.get(factory.getEventContextClassname()), logger))
-                .collect(Collectors.toList());
+        if (testContextInitializerFactories.isEmpty()) {
+            logger.info("no test context initializer factories found, skip initializing test context");
+            return;
+        }
+
+        Map<String, TestContextInitializerFactory> testContextInitializers = testContextInitializerFactories.stream()
+                .collect(Collectors.toMap(TestContextInitializerFactory::getEventContextClassname, f -> f,
+                        (f1, f2) -> { logger.warn("found duplicate test context initializer: " + f2.getClass().getName()); return f1; }));
 
         logger.info("init test context");
         final AtomicReference<TestContext> testContext = new AtomicReference<>(eventSchedulerContext.get().getTestContext());
-        testContextInitializers.forEach(testContextInitializer -> {
-            logger.info("found TestContextInitializer: " + testContextInitializer.getClass().getName());
-            testContext.set(testContextInitializer.extendTestContext(testContext.get()));
-        });
+
+        allEventContexts.stream()
+                .filter(EventContext::isEnabled)
+                .forEach(eventContext -> {
+                    TestContextInitializerFactory factory = testContextInitializers.get(eventContext.getClass().getName());
+                    if (factory == null) {
+                        logger.debug("no test context initializer factory found for event: " + eventContext.getName());
+                        return;
+                    }
+                    TestContextInitializer testContextInitializer = factory.create(eventContext, logger);
+                    logger.info("init test context for event: " + eventContext.getName());
+                    testContext.set(testContextInitializer.extendTestContext(testContext.get()));
+                });
 
         this.eventSchedulerContext.set(eventSchedulerContext.get().withTestContext(testContext.get()));
     }
