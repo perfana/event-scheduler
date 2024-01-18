@@ -540,7 +540,7 @@ public class EventSchedulerTest
         ArgumentCaptor<EventContext> eventContextCaptor = ArgumentCaptor.forClass(EventContext.class);
 
         Mockito.when(eventFactory.create(any(), any(), any(), any()))
-                .thenReturn(new EventAdapter<EventContext>(eventConfig.toContext(), testConfig.toContext(), null, testLogger) {
+                .thenReturn(new EventAdapter<>(eventConfig.toContext(), testConfig.toContext(), null, testLogger) {
                     @Override
                     public void keepAlive() {
                         logger.info("keepAlive called");

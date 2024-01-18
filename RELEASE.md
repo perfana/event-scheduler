@@ -8,3 +8,7 @@
 * default value of continueOnEventCheckFailure is now false
 * improved documentation
 * unique value of default test run ids
+
+## v4.0.2 - january 2024
+* fixed issue giving warnings for events of same class: should be warning for events with same name
+* improved disabled event handling: do no use disabled events, only report them
