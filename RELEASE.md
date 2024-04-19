@@ -13,3 +13,6 @@
 * fixed issue giving warnings for events of same class: should be warning for events with same name
 * improved disabled event handling: do no use disabled events, only report them
 * note: do not use `v4.0.2`, it has null pointer issue
+
+## v4.0.4 - april 2024
+* new immutable test contexts can be created using the `withX` methods
