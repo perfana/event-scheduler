@@ -24,13 +24,13 @@ import java.util.List;
 @Value
 @Builder(access = AccessLevel.PROTECTED)
 @Immutable
+@With
 public class TestContext {
     String systemUnderTest;
     String workload;
     String testEnvironment;
     String productName;
     String dashboardName;
-    @With
     String testRunId;
     String buildResultsUrl;
     String version;
