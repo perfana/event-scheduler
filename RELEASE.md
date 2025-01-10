@@ -16,3 +16,8 @@
 
 ## v4.0.4 - april 2024
 * new immutable test contexts can be created using the `withX` methods
+
+## v4.0.5 - januari 2025
+* improved executor handling on shutdown
+* improved logging
+* code cleanup and dependencies update
