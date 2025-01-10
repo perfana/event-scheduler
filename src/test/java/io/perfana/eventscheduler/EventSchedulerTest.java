@@ -389,7 +389,7 @@ public class EventSchedulerTest
         Mockito.verify(eventSchedulerEngine, times(1)).startCustomEventScheduler(any(), any());
 
         // should be called once in stop, not also in abort
-        Mockito.verify(eventSchedulerEngine, times(1)).shutdownThreadsNow();
+        Mockito.verify(eventSchedulerEngine, times(1)).shutdownThreads();
 
     }
 

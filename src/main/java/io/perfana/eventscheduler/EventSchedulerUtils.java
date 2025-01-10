@@ -27,14 +27,13 @@ public class EventSchedulerUtils {
     private EventSchedulerUtils() {}
 
     public static int parseInt(String variableName, String numberString, int defaultValue) {
-        int time;
+        int value = defaultValue;
         try {
-            time = Integer.parseInt(numberString);
+            value = Integer.parseInt(numberString);
         } catch (NumberFormatException e) {
             System.err.printf("unable to parse value of [%s=%s]: using default value [%d]. Error message: %s.%n", variableName, numberString, defaultValue, e.getMessage());
-            time = defaultValue;
         }
-        return time;
+        return value;
     }
 
     public static boolean hasValue(String variable) {

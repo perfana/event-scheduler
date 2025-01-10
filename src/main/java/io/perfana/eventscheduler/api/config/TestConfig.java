@@ -15,10 +15,7 @@
  */
 package io.perfana.eventscheduler.api.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import net.jcip.annotations.NotThreadSafe;
 
 import java.time.Duration;
@@ -30,6 +27,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @NotThreadSafe
+@EqualsAndHashCode
 public class TestConfig {
     @Builder.Default
     private String systemUnderTest = "UNKNOWN_SYSTEM_UNDER_TEST";

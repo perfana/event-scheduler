@@ -77,24 +77,49 @@ class EventSchedulerEngine {
         executorService.schedule(new EventRunner(event, broadcaster), event.getDuration().getSeconds(), TimeUnit.SECONDS);
     }
 
-    void shutdownThreadsNow() {
-        logger.info("shutdown Executor threads");
+    void shutdownThreads() {
         if (executorKeepAlive != null) {
-            executorKeepAlive.shutdownNow();
+            logger.info("shutdown KeepAlive Executor threads");
+            List<Runnable> runnables = executorKeepAlive.shutdownNow();
+            logger.info("executorKeepAlive shutdown, remaining tasks that got force shutdown: " + runnables.size());
+            runnables.forEach(runnable -> logger.warn("force shutdown task: " + runnable));
         }
         if (executorCustomEvents != null) {
+            logger.info("shutdown Custom Events Executor threads");
             List<Runnable> runnables = executorCustomEvents.shutdownNow();
-            if (!runnables.isEmpty()) {
-                if (runnables.size() == 1) {
-                    logger.warn("There is 1 custom event that is not (fully) executed!");
-                }
-                else {
-                    logger.warn("There are " + runnables.size() + " custom events that are not (fully) executed!");
-                }
-            }
+            logger.info("executorCustomEvents shutdown, remaining tasks that got force shutdown: " + runnables.size());
+            runnables.forEach(runnable -> logger.warn("force shutdown task: " + runnable));
         }
+
+        if (executorKeepAlive != null) {
+            waitForShutdown(executorKeepAlive, "executorKeepAlive");
+        }
+        if (executorCustomEvents != null) {
+            waitForShutdown(executorCustomEvents, "executorCustomEvents");
+        }
+
         executorKeepAlive = null;
         executorCustomEvents = null;
+    }
+
+    private void waitForShutdown(ScheduledExecutorService executor, String executorName) {
+        try {
+            boolean terminatedWithoutTimeout = executor.awaitTermination(20, TimeUnit.SECONDS);
+            if (!terminatedWithoutTimeout) {
+                logger.warn(executorName + " did not shutdown in time, force shutdown");
+                forceShutdownNowWithMessage(executor, executorName);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn(executorName + " awaitTermination was interrupted, force shutdown");
+            forceShutdownNowWithMessage(executor, executorName);
+        }
+    }
+
+    private void forceShutdownNowWithMessage(ScheduledExecutorService executor, String executorCustomEventsName) {
+        List<Runnable> runnables = executor.shutdownNow();
+        logger.warn(executorCustomEventsName + " force shutdown, remaining tasks that got force shutdown: " + runnables.size());
+        runnables.forEach(runnable -> logger.warn("force shutdown task: " + runnable));
     }
 
     void startCustomEventScheduler(Collection<CustomEvent> scheduleEvents, EventBroadcaster broadcaster) {

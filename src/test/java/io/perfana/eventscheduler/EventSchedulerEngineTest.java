@@ -86,7 +86,7 @@ public class EventSchedulerEngineTest {
         // check if all events are called at 100, 200, 300, 400 and 500 ms
         Thread.sleep(600);
 
-        engine.shutdownThreadsNow();
+        engine.shutdownThreads();
 
         verify(eventBroadcaster, times(5))
                 .broadcastCustomEvent(any(CustomEvent.class));

@@ -25,7 +25,7 @@ import java.util.Map;
 @Builder
 public class EventMessage {
     @Builder.Default
-    long timestamp = System.currentTimeMillis();
+    long timestamp = System.currentTimeMillis(); //NOPMD - suppressed AvoidTimeUnitConfusion - timestamp is part of interface
     String message;
     String pluginName;
     @Singular

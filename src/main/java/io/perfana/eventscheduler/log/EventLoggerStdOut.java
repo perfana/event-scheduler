@@ -17,6 +17,9 @@ package io.perfana.eventscheduler.log;
 
 import io.perfana.eventscheduler.api.EventLogger;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Logs to standard out for convenience. Add your own logger preferably where possible.
  */
@@ -24,6 +27,8 @@ public class EventLoggerStdOut implements EventLogger {
 
     public static final EventLoggerStdOut INSTANCE = new EventLoggerStdOut(false);
     public static final EventLoggerStdOut INSTANCE_DEBUG = new EventLoggerStdOut(true);
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private final boolean debug;
 
@@ -62,10 +67,15 @@ public class EventLoggerStdOut implements EventLogger {
     }
 
     private void say(String level, String something) {
-        System.out.printf("## %s ## %s%n", level, something);
+        System.out.printf("%s ## %s ## %s ## %s%n", timeStampNow(), level, Thread.currentThread().getName(), something);
     }
+
     private void say(String level, String something, Throwable throwable) {
-        System.out.printf("## %s ## %s %s: %s%n", level, something, throwable.getClass().getName(), throwable.getMessage());
+        System.out.printf("%s ## %s ## %s ## %s %s: %s%n", timeStampNow(), level, Thread.currentThread().getName(), something, throwable.getClass().getName(), throwable.getMessage());
         throwable.printStackTrace();
+    }
+
+    private String timeStampNow() {
+        return TIME_FORMATTER.format(LocalTime.now());
     }
 }

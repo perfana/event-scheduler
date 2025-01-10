@@ -38,34 +38,37 @@ public class EventLoggerWithName implements EventLogger {
         }
     }
 
-
     @Override
     public void info(String message) {
-        logger.info(String.format("[%s] [%s] %s", name, classname, message));
+        logger.info(formatMessage(message));
     }
 
     @Override
     public void warn(String message) {
-        logger.warn(String.format("[%s] [%s] %s", name, classname, message));
+        logger.warn(formatMessage(message));
     }
 
     @Override
     public void error(String message) {
-        logger.error(String.format("[%s] [%s] %s", name, classname, message));
+        logger.error(formatMessage(message));
     }
 
     @Override
     public void error(String message, Throwable throwable) {
-        logger.error(String.format("[%s] [%s] %s", name, classname, message), throwable);
+        logger.error(formatMessage(message), throwable);
     }
 
     @Override
     public void debug(String message) {
-        logger.debug(String.format("[%s] [%s] %s", name, classname, message));
+        logger.debug(formatMessage(message));
     }
 
     @Override
     public boolean isDebugEnabled() {
         return true;
+    }
+
+    private String formatMessage(String message) {
+        return String.format("[%s] [%s] %s", classname, name, message);
     }
 }

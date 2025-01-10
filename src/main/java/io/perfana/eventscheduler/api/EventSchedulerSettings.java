@@ -16,6 +16,7 @@
 package io.perfana.eventscheduler.api;
 
 import java.time.Duration;
+import java.util.Objects;
 
 public class EventSchedulerSettings {
 
@@ -29,4 +30,16 @@ public class EventSchedulerSettings {
         return keepAliveDuration;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+
+        EventSchedulerSettings that = (EventSchedulerSettings) o;
+        return Objects.equals(keepAliveDuration, that.keepAliveDuration);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(keepAliveDuration);
+    }
 }

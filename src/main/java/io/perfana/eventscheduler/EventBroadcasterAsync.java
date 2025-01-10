@@ -22,6 +22,7 @@ import io.perfana.eventscheduler.log.EventLoggerDevNull;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +42,13 @@ public class EventBroadcasterAsync implements EventBroadcaster {
     EventBroadcasterAsync(Collection<Event> events, EventLogger logger, ExecutorService executor) {
         this.events = events == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(events));
         this.logger = logger == null ? EventLoggerDevNull.INSTANCE : logger;
-        this.executor = executor == null ? Executors.newCachedThreadPool() : executor;
+        ThreadFactory threadFactory = new ThreadFactory() {
+            private final AtomicInteger threadNumber = new AtomicInteger(1);
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "EventBroadcasterAsync-" + threadNumber.getAndIncrement());
+            }
+        };
+        this.executor = executor == null ? Executors.newCachedThreadPool(threadFactory) : executor;
         this.continueTestRunParticipantsCount = (int) this.events.stream().filter(Event::isContinueOnKeepAliveParticipant).count();
     }
 
@@ -73,7 +80,7 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         // block until 'all before' tasks are finished, only then proceed to run test
         try {
-            Void aVoid = allBeforeTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            allBeforeTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("got interrupt waiting for all 'before test' calls to finish, " +
                     "not all call may have been finished");
@@ -102,7 +109,7 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         // block until all 'start tests' tasks are finished, only then proceed to run test
         try {
-            Void aVoid = allStartTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            allStartTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("got interrupt waiting for all 'after test' calls to finish, " +
                 "not all call may have been finished");
@@ -138,8 +145,10 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         // block until all 'after tests' tasks are finished, only then proceed to run test
         try {
-            Void aVoid = allAfterTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            allAfterTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            logger.info("All 'after test' calls finished");
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             logger.warn("got interrupt waiting for all 'after test' calls to finish, " +
                     "not all call may have been finished");
         } catch (ExecutionException e) {
@@ -165,7 +174,7 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         // block until all 'keep alive' tasks are finished, then check if KillSwitchException is present
         try {
-            Void aVoid = allKeepAlives.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            allKeepAlives.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("got interrupt waiting for all 'keep alive' calls to finish, " +
                     "not all call may have been finished");
@@ -200,8 +209,9 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         // block until all 'abort tests' tasks are finished
         try {
-            Void aVoid = allAbortTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            allAbortTests.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             logger.warn("got interrupt waiting for all 'abort test' calls to finish, " +
                     "not all call may have been finished");
         } catch (ExecutionException e) {
@@ -211,6 +221,8 @@ public class EventBroadcasterAsync implements EventBroadcaster {
             logger.warn("waited for " + ALL_CALLS_TIME_OUT_SECONDS + " seconds, got timeout waiting, " +
                     "'abort test' tasks might still be running?");
         }
+
+        executor.shutdown();
     }
 
     @Override
@@ -237,13 +249,16 @@ public class EventBroadcasterAsync implements EventBroadcaster {
 
         CompletableFuture<List<EventCheck>> listCompletableFuture = allEventChecks.thenApply(future ->
                 eventChecks.stream()
-                        .map(CompletableFuture::join)
+                        .map(CompletableFuture::join) //NOPMD - suppressed AvoidFutureJoinWithoutTimeout - there is a catch-all timeout
                         .collect(Collectors.toList()));
 
         try {
             return listCompletableFuture.get(ALL_CALLS_TIME_OUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (ExecutionException | TimeoutException e) {
             throw new EventSchedulerRuntimeException("get event checks error", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new EventSchedulerRuntimeException("get event checks interrupted", e);
         }
 
     }
@@ -273,20 +288,22 @@ public class EventBroadcasterAsync implements EventBroadcaster {
     }
 
     private Function<Throwable, Void> printError(Event e, Queue<Throwable> errors) {
-        return t -> {
-            // t is CompletionException, so get inner cause
-            Throwable cause = t.getCause();
-            if (cause instanceof SchedulerHandlerException) {
-                logger.debug("SchedulerHandler " + ((SchedulerHandlerException)cause).getExceptionType() + " requested from event '" + e.getName() + "'");
-            }
-            else {
-                logger.error("Event failure in '" + e.getName() + "'", cause);
-            }
-            if (errors != null) {
-                errors.add(cause);
-            }
-            return null;
-        };
+        return t -> dealWithErrors(e, errors, t);
+    }
+
+    private Void dealWithErrors(Event e, Queue<Throwable> errors, Throwable t) {
+        // t is CompletionException, so get inner cause
+        Throwable cause = t.getCause();
+        if (cause instanceof SchedulerHandlerException) {
+            logger.debug("SchedulerHandler " + ((SchedulerHandlerException)cause).getExceptionType() + " requested from event '" + e.getName() + "'");
+        }
+        else {
+            logger.error("Event failure in '" + e.getName() + "'", cause);
+        }
+        if (errors != null) {
+            errors.add(cause);
+        }
+        return null;
     }
 
     private Function<Throwable, Void> printError(Event e) {

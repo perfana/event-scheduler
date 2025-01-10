@@ -98,26 +98,32 @@ public class EventBroadcasterDefault implements EventBroadcaster {
      * All exceptions are added to the queue.
      */
     private Consumer<Event> catchExceptionWrapper(Consumer<Event> consumer, Queue<Throwable> errors) {
-        return event -> {
-            try {
-                consumer.accept(event);
-            } catch (SchedulerHandlerException e) {
-                if (errors != null) {
-                    errors.add(e);
-                }
-            } catch (Exception e) {
-                String message = "exception in event (" + event.getName() + ")";
-                if (logger != null) {
-                    logger.error(message, e);
-                }
-                else {
-                    System.err.printf("exception found (note: better provide a logger): %s %s", message, e.getMessage());
-                }
-                if (errors != null) {
-                    errors.add(e);
-                }
+        return event -> acceptAndHandleExceptions(consumer, errors, event);
+    }
+
+    private void acceptAndHandleExceptions(Consumer<Event> consumer, Queue<Throwable> errors, Event event) {
+        try {
+            consumer.accept(event);
+        } catch (SchedulerHandlerException e) {
+            if (errors != null) {
+                errors.add(e);
             }
-        };
+        } catch (Exception e) {
+            dealWithErrors(errors, event, e);
+        }
+    }
+
+    private void dealWithErrors(Queue<Throwable> errors, Event event, Exception e) {
+        String message = "exception in event (" + event.getName() + ")";
+        if (logger != null) {
+            logger.error(message, e);
+        }
+        else {
+            System.err.printf("exception found (note: better provide a logger): %s %s", message, e.getMessage());
+        }
+        if (errors != null) {
+            errors.add(e);
+        }
     }
 
 }

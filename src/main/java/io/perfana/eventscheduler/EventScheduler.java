@@ -153,7 +153,7 @@ public final class EventScheduler {
         else {
             logger.info("stop test session.");
 
-            eventSchedulerEngine.shutdownThreadsNow();
+            eventSchedulerEngine.shutdownThreads();
 
             broadcaster.broadcastAfterTest();
 
@@ -180,7 +180,7 @@ public final class EventScheduler {
         else {
             logger.info("test session abort called");
 
-            eventSchedulerEngine.shutdownThreadsNow();
+            eventSchedulerEngine.shutdownThreads();
 
             broadcaster.broadcastAbortTest();
         }

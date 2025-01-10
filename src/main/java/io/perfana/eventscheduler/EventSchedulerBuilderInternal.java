@@ -183,18 +183,20 @@ class EventSchedulerBuilderInternal {
 
         allEventContexts.stream()
                 .filter(EventContext::isEnabled)
-                .forEach(eventContext -> {
-                    TestContextInitializerFactory factory = testContextInitializers.get(eventContext.getClass().getName());
-                    if (factory == null) {
-                        logger.debug("no test context initializer factory found for event: " + eventContext.getName());
-                        return;
-                    }
-                    TestContextInitializer testContextInitializer = factory.create(eventContext, logger);
-                    logger.info("init test context for event: " + eventContext.getName());
-                    testContext.set(testContextInitializer.extendTestContext(testContext.get()));
-                });
+                .forEach(eventContext -> initializeTestContext(eventContext, testContextInitializers, testContext));
 
         this.eventSchedulerContext.set(eventSchedulerContext.get().withTestContext(testContext.get()));
+    }
+
+    private void initializeTestContext(EventContext eventContext, Map<String, TestContextInitializerFactory> testContextInitializers, AtomicReference<TestContext> testContext) {
+        TestContextInitializerFactory factory = testContextInitializers.get(eventContext.getClass().getName());
+        if (factory == null) {
+            logger.debug("no test context initializer factory found for event: " + eventContext.getName());
+            return;
+        }
+        TestContextInitializer testContextInitializer = factory.create(eventContext, logger);
+        logger.info("init test context for event: " + eventContext.getName());
+        testContext.set(testContextInitializer.extendTestContext(testContext.get()));
     }
 
     @SuppressWarnings("unchecked")

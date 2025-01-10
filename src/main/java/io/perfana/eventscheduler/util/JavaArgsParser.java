@@ -15,9 +15,7 @@
  */
 package io.perfana.eventscheduler.util;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -31,7 +29,7 @@ public class JavaArgsParser {
 
     public static final String JMV_ARG_PREFIX = "jvmArg.";
     public static final Pattern CLEAN_OPTION_PATTERN = Pattern.compile("[+-:]");
-    private static final List<String> SECRETS_KEY_PARTS = Arrays.asList("password,token,key".split(","));
+    private static final List<String> SECRETS_KEY_PARTS = List.of("password,token,key".split(","));
 
     private static KeyValuePair jvmArgToKeyValue(String jvmArg) {
         final String key;
@@ -43,10 +41,10 @@ public class JavaArgsParser {
 
         if (jvmArg.startsWith("-D")) {
             key = jvmArgPart1.substring(1);
-            value = jvmArgPart2.length() == 0 ? jvmArgPart1.substring(2) : jvmArgPart2;
+            value = jvmArgPart2.isEmpty() ? jvmArgPart1.substring(2) : jvmArgPart2;
         } else if (jvmArg.startsWith("-XX:")) {
             key = CLEAN_OPTION_PATTERN.matcher(jvmArgPart1).replaceAll("");
-            value = jvmArgPart2.length() == 0 ? jvmArgPart1.substring(4) : jvmArgPart2;
+            value = jvmArgPart2.isEmpty() ? jvmArgPart1.substring(4) : jvmArgPart2;
         } else if (jvmArg.startsWith("-")) {
             String option = jvmArg.substring(1);
             // -d32 and -d64 are possible, hard to parse generically
@@ -70,7 +68,7 @@ public class JavaArgsParser {
             }
             else {
                 key = option;
-                if (jvmArgPart2.length() == 0) {
+                if (jvmArgPart2.isEmpty()) {
                     value = option.startsWith("X") ? option.substring(1) : option;
                 }
                 else {
@@ -106,6 +104,21 @@ public class JavaArgsParser {
 
         public String getValue() {
             return value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+
+            KeyValuePair that = (KeyValuePair) o;
+            return Objects.equals(key, that.key) && Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hashCode(key);
+            result = 31 * result + Objects.hashCode(value);
+            return result;
         }
     }
 

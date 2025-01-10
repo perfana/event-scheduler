@@ -20,6 +20,7 @@ import io.perfana.eventscheduler.exception.EventSchedulerRuntimeException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -182,5 +183,22 @@ public class CustomEvent {
         public ScheduleEventWrongFormat(String message, Exception e) {
            super(message, e);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CustomEvent that = (CustomEvent) o;
+        return Objects.equals(duration, that.duration) && Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(settings, that.settings);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(duration);
+        result = 31 * result + Objects.hashCode(name);
+        result = 31 * result + Objects.hashCode(description);
+        result = 31 * result + Objects.hashCode(settings);
+        return result;
     }
 }
