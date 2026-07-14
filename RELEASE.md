@@ -1,5 +1,8 @@
 # Release notes Perfana Event Scheduler
 
+## v4.0.6 - july 2026
+* skip commented lines in event processing
+
 ## v4.0.5 - january 2025
 * improved executor handling on shutdown
 * improved logging with timestamps
