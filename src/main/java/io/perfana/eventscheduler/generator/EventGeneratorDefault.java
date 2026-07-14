@@ -49,6 +49,7 @@ public class EventGeneratorDefault implements EventGenerator {
                 try (BufferedReader eventReader = new BufferedReader(new StringReader(eventsAsString))) {
                     List<String> events = eventReader.lines()
                             .map(String::trim)
+                            .filter(e -> !e.startsWith("#")) // skip commented out lines
                             .filter(e -> !e.isEmpty())
                             .filter(e -> !e.startsWith("@"))
                             .collect(Collectors.toList());
