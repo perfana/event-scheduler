@@ -3,8 +3,16 @@ name: Java Build with Gradle wrapper
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/release.yml'
+      - 'VERSION'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/release.yml'
+      - 'VERSION'
 
 jobs:
   build:

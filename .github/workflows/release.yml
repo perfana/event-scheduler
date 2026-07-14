@@ -28,6 +28,15 @@ jobs:
         run: |
           git fetch --all --tags
           git checkout tags/${{ env.TAG_NAME }} -b ${{ env.TAG_NAME }}-tmp-branch
+      - name: Verify VERSION file matches tag
+        if: contains(env.TAG_NAME, 'SNAPSHOT') != true
+        run: |
+          FILE_VERSION=$(cat ./VERSION)
+          if [ "$FILE_VERSION" != "${{ env.TAG_NAME }}" ]; then
+            echo "ERROR: VERSION file ($FILE_VERSION) does not match tag (${{ env.TAG_NAME }})"
+            exit 1
+          fi
+          echo "VERSION file and tag are in sync: $FILE_VERSION"
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
