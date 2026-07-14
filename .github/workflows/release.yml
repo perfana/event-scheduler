@@ -17,9 +17,12 @@ jobs:
           fetch-depth: 0
       - name: Set tag name
         run: |
-          VERSION=$(cat ./VERSION)
-          echo "TAG_NAME=$VERSION" >> $GITHUB_ENV
-      # if no tag exists, this is expected to fail
+          # Use the pushed tag name; fall back to VERSION file for workflow_dispatch
+          TAG="${{ github.ref_name }}"
+          if [ "$TAG" = "" ] || [ "$TAG" = "main" ]; then
+            TAG=$(cat ./VERSION)
+          fi
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
       - name: Switch to git tag for release
         if: contains(env.TAG_NAME, 'SNAPSHOT') != true
         run: |
@@ -38,7 +41,7 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_PASSWORD }}
-        run: ./gradlew --info clean publishToMavenCentral
+        run: ./gradlew --info clean publishToMavenCentral -Pversion=${{ env.TAG_NAME }}
 
       - name: Publish release to Maven Central
         if: contains(env.TAG_NAME, 'SNAPSHOT') != true
@@ -47,7 +50,7 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_PASSWORD }}
-        run: ./gradlew --info publishToMavenCentral
+        run: ./gradlew --info publishToMavenCentral -Pversion=${{ env.TAG_NAME }}
 
       - name: Create GHA release
         uses: ncipollo/release-action@v1
