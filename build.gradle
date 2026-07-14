@@ -1,12 +1,8 @@
 import org.gradle.internal.os.OperatingSystem
 
-import java.time.Duration
-
 plugins {
     id "java"
-    id "signing"
-    id "maven-publish"
-    id "io.github.gradle-nexus.publish-plugin" version "2.0.0"
+    id "com.vanniktech.maven.publish" version "0.37.0"
     // check dependency updates: ./gradlew dependencyUpdates -Drevision=release
     id 'com.github.ben-manes.versions' version '0.54.0'
     id 'com.github.hierynomus.license' version '0.16.1'
@@ -36,19 +32,35 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:5.23.0'
 }
 
-// configure all java components to be published
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+
+    coordinates("io.perfana", "event-scheduler", version)
+
+    pom {
+        name = "io.perfana:event-scheduler"
+        description = "event-scheduler"
+        url = "https://github.com/perfana/event-scheduler"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0"
+            }
+        }
+        developers {
+            developer {
+                id = "peter.paul.bakker"
+                name = "Peter Paul Bakker"
+                email = "peter.paul@perfana.io"
+            }
+        }
+        scm {
+            connection = "scm:git:https://github.com/perfana/event-scheduler.git"
+            developerConnection = "scm:git:git@github.com:perfana/event-scheduler.git"
+            url = "https://github.com/perfana/event-scheduler"
         }
     }
-}
-
-// ossrh requires javadoc and sources https://central.sonatype.org/pages/requirements.html
-java {
-    withJavadocJar()
-    withSourcesJar()
 }
 
 license {
@@ -69,63 +81,3 @@ license {
     strictCheck = true
 }
 
-// https://docs.gradle.org/current/userguide/signing_plugin.html
-// this only configures signing if the key is found
-def hasSigningKey = project.hasProperty("signingKeyId") || project.hasProperty("signingKey")
-if(hasSigningKey) {
-    sign(project)
-}
-void sign(Project project) {
-    project.signing {
-        required { project.gradle.taskGraph.hasTask("publish") }
-        def signingKeyId = project.findProperty("signingKeyId")
-        def signingKey = project.findProperty("signingKey")
-        def signingPassword = project.findProperty("signingPassword")
-        if (signingKeyId) {
-            useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-        } else if (signingKey) {
-            useInMemoryPgpKeys(signingKey, signingPassword)
-        }
-        sign publishing.publications.maven
-    }
-}
-
-// customize the pom so it complies to Maven central requirements https://central.sonatype.org/pages/requirements.html
-// https://docs.gradle.org/current/userguide/maven_plugin.html#sec:maven_pom_generation
-project.plugins.withType(MavenPublishPlugin).all {
-    PublishingExtension publishing = project.extensions.getByType(PublishingExtension)
-    publishing.publications.withType(MavenPublication).all { mavenPublication ->
-        mavenPublication.pom {
-            name = "${project.group}:${project.name}"
-            description = name
-            url = "https://github.com/perfana/event-scheduler.git"
-            licenses {
-                license {
-                    name = "The Apache License, Version 2.0"
-                    url = "https://www.apache.org/licenses/LICENSE-2.0"
-                }
-            }
-            developers {
-                developer {
-                    id = 'peter.paul.bakker'
-                    name = 'Peter Paul Bakker'
-                    email = 'peter.paul@perfana.io'
-                }
-            }
-            scm {
-                connection = "scm:git:https://github.com/perfana/event-scheduler.git"
-                developerConnection = "scm:git:git@github.com:perfana/event-scheduler.git"
-                url = "https://github.com/perfana/event-scheduler.git"
-            }
-        }
-    }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype()
-    }
-    // Prevent "java.net.SocketTimeoutException: timeout", when Sonatype is slow.
-    connectTimeout = Duration.ofMinutes(3)
-    clientTimeout = Duration.ofMinutes(3)
-}
